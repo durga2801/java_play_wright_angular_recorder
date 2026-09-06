@@ -461,7 +461,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         }
     }
 
-     private static final String RECORDING_SCRIPT = """
+    private static final String RECORDING_SCRIPT = """
 (() => {
 
     if (window.__angularRecorderInstalled) {
@@ -1673,6 +1673,9 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     false,
 
                 waitingForSelection:
+                    false,
+
+                dateWaitActive:
                     false
             };
 
@@ -1816,6 +1819,13 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return;
         }
 
+        if (attempt === 0) {
+            if (state.dateWaitActive) {
+                return;
+            }
+            state.dateWaitActive = true;
+        }
+
 
         /*
          * Up to roughly 2.5 seconds.
@@ -1833,7 +1843,10 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     state.control
                 );
 
-            if (actual) {
+            if (
+                actual &&
+                actual !== state.previousValue
+            ) {
 
                 state.finalValue =
                     actual;
@@ -1844,13 +1857,17 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 state.selectedValue =
                     null;
 
+                state.dateWaitActive = false;
+
                 emitFinal(
                     state,
                     'DATE_INPUT',
                     'DATE'
                 );
+                return;
             }
 
+            state.dateWaitActive = false;
             return;
         }
 
@@ -1885,6 +1902,8 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
             state.selectedValue =
                 null;
+
+            state.dateWaitActive = false;
 
             emitFinal(
                 state,
@@ -2034,6 +2053,26 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
                 state.waitingForSelection =
                     true;
+
+                return;
+            }
+
+
+            /*
+             * DATE INPUT:
+             * native and custom date controls may update asynchronously.
+             */
+            if (
+                type === 'DATE' ||
+                isDateControl(control)
+            ) {
+                state.finalValue = value;
+                state.dirty = true;
+
+                setTimeout(
+                    () => waitForFinalDateValue(state),
+                    0
+                );
 
                 return;
             }
@@ -2255,22 +2294,26 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             ) {
 
                 /*
-                 * Directly typed date:
+                 * Date controls are special: many Angular/custom
+                 * datepickers update the bound/native value after
+                 * the change handler or without a useful focusout.
                  *
-                 * the actual input value is authoritative.
+                 * Mark dirty and actively wait for the authoritative
+                 * final value instead of relying on focusout alone.
                  */
                 const actual =
                     readDateValue(control);
 
-
                 if (actual) {
-
-                    state.finalValue =
-                        actual;
-
-                    state.dirty =
-                        true;
+                    state.finalValue = actual;
                 }
+
+                state.dirty = true;
+
+                setTimeout(
+                    () => waitForFinalDateValue(state),
+                    0
+                );
 
                 return;
             }
@@ -2318,6 +2361,32 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                         ?.getAttribute
                         ?.('role')
                 )?.toLowerCase();
+
+
+            /*
+             * ==================================================
+             * ACTIVE DATE PICKER
+             * ==================================================
+             *
+             * Calendar cells in Angular/custom datepickers are often
+             * buttons/gridcells and do not use role=option. Whenever a
+             * date control is active, allow the click to complete and
+             * then wait for the actual input value to change. Clicking
+             * only the datepicker opener is harmless because
+             * waitForFinalDateValue emits only when the real value
+             * differs from previousValue.
+             */
+            const dateState = activeState();
+
+            if (
+                dateState &&
+                isDateControl(dateState.control)
+            ) {
+                setTimeout(
+                    () => waitForFinalDateValue(dateState),
+                    0
+                );
+            }
 
 
             /*

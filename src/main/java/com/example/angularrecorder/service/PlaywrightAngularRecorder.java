@@ -1961,6 +1961,119 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
 
 
+    /* =========================================================
+       LOGICAL CONTROL IDENTITY SNAPSHOT
+       ========================================================= */
+
+    function snapshotLogicalControl(control) {
+
+        if (!control) {
+            return null;
+        }
+
+        /*
+         * Similar Angular controls frequently reuse the same internal
+         * search input / popup / option template.  Never resolve identity
+         * later from that shared overlay because it can belong to a
+         * different field by then.
+         *
+         * Capture the logical field identity at the moment the OUTER bound
+         * control becomes active and keep it with that control until its
+         * final value is emitted.
+         */
+        return {
+            ...control,
+            recorderIdentity: {
+                input:
+                    semanticInputName(control),
+
+                identifyBy:
+                    identifyBy(control),
+
+                inputType:
+                    detectInputType(control),
+
+                context:
+                    dialogContext(control)
+            }
+        };
+    }
+
+
+
+    function resetSelectionState(control) {
+
+        const key =
+            logicalKey(control);
+
+        if (!key) {
+            return;
+        }
+
+        const timer =
+            multiSelectTimers.get(key);
+
+        if (timer) {
+            clearTimeout(timer);
+            multiSelectTimers.delete(key);
+        }
+
+        const state =
+            selectionStates.get(key);
+
+        if (state) {
+            state.searchText = null;
+            state.selectedValues.clear();
+            state.selectedTexts.clear();
+        }
+    }
+
+
+
+    function activateLogicalControl(control) {
+
+        if (!control) {
+            return null;
+        }
+
+        const nextKey =
+            logicalKey(control);
+
+        const previousKey =
+            logicalKey(activeLogicalControl);
+
+        /*
+         * Moving from one visually-similar field to another must start a
+         * fresh search/select session.  This prevents identifyBy/searchText
+         * from the previous field being copied to the next field.
+         */
+        if (previousKey &&
+            nextKey &&
+            previousKey !== nextKey) {
+
+            resetSelectionState(
+                activeLogicalControl
+            );
+        }
+
+        activeLogicalControl =
+            snapshotLogicalControl(control);
+
+        const state =
+            selectionState(
+                activeLogicalControl
+            );
+
+        if (state) {
+            state.control =
+                activeLogicalControl;
+        }
+
+        return activeLogicalControl;
+    }
+
+
+
     function logicalAction(control) {
 
         const type =
@@ -2407,9 +2520,13 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return false;
         }
 
+        /* Keep this checkbox selection bound to the field that opened it. */
+        const owner =
+            activeLogicalControl;
+
         const state =
             selectionState(
-                activeLogicalControl
+                owner
             );
 
         if (!state) {
@@ -2560,27 +2677,34 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         actionType,
         typeOverride) {
 
+        const snapshot =
+            control?.recorderIdentity;
+
         return {
 
             actionType,
 
             inputType:
                 typeOverride ||
+                snapshot?.inputType ||
                 detectInputType(
                     control
                 ),
 
             input:
+                snapshot?.input ||
                 semanticInputName(
                     control
                 ),
 
             identifyBy:
+                snapshot?.identifyBy ||
                 identifyBy(
                     control
                 ),
 
             context:
+                snapshot?.context ||
                 dialogContext(
                     control
                 )
@@ -2770,8 +2894,9 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     control.customHost
                 )) {
 
-                activeLogicalControl =
-                    control;
+                activateLogicalControl(
+                    control
+                );
             }
         },
         true
@@ -2810,11 +2935,15 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     control.nativeElement
                 )) {
 
-                activeLogicalControl =
-                    control;
+                const activeControl =
+                    activateLogicalControl(
+                        control
+                    );
 
                 const state =
-                    selectionState(control);
+                    selectionState(
+                        activeControl
+                    );
 
                 if (state) {
                     state.searchText =
@@ -3153,8 +3282,10 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 const before =
                     currentValue(control);
 
-                activeLogicalControl =
-                    control;
+                const activeControl =
+                    activateLogicalControl(
+                        control
+                    );
 
                 /*
                  * Editable controls are captured by input/change. For
@@ -3173,7 +3304,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 ) {
 
                     waitForLogicalValueChange(
-                        control,
+                        activeControl || control,
                         before
                     );
                 }
@@ -3213,9 +3344,17 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     return;
                 }
 
+                /*
+                 * Freeze the owner of this popup selection NOW.  Do not
+                 * read activeLogicalControl inside setTimeout because the
+                 * user may already have opened the next similar field.
+                 */
+                const owner =
+                    activeLogicalControl;
+
                 const before =
                     currentValue(
-                        activeLogicalControl
+                        owner
                     );
 
                 const selectedText =
@@ -3226,7 +3365,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
                 const state =
                     selectionState(
-                        activeLogicalControl
+                        owner
                     );
 
                 /*
@@ -3239,11 +3378,11 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
                         const actual =
                             currentValue(
-                                activeLogicalControl
+                                owner
                             );
 
                         emitSelection(
-                            activeLogicalControl,
+                            owner,
                             actual ||
                                 selectedValue ||
                                 selectedText,
@@ -3260,7 +3399,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 );
 
                 waitForLogicalValueChange(
-                    activeLogicalControl,
+                    owner,
                     before
                 );
 

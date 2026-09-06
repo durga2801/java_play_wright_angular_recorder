@@ -35,27 +35,16 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
         context = browser.newContext();
 
-        // Direct browser -> Java event bridge. Avoids relying on console output.
-        context.exposeBinding("__angularRecorderEmit", (source, args) -> {
-            if (args == null || args.length == 0 || args[0] == null) {
-                return null;
-            }
-            try {
-                JsonNode node = mapper.valueToTree(args[0]);
-                rawEvents.add(node);
-                System.out.println(PREFIX + mapper.writeValueAsString(node));
-            } catch (Exception ex) {
-                System.err.println("Unable to capture recorder event: " + ex.getMessage());
-            }
-            return null;
-        });
-
         /*
          * Install recorder before every Angular page/reload/navigation.
          */
         context.addInitScript(loadRecordingScript());
 
         page = context.newPage();
+
+        page.onPageError(error ->
+                System.err.println("[RECORDER JS ERROR] " + error)
+        );
 
         page.onConsoleMessage(message -> {
 
@@ -96,6 +85,17 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         page.navigate(url);
 
         page.waitForLoadState();
+
+        try {
+            Object installed = page.evaluate(
+                    "() => window.__angularRecorderInstalled === true"
+            );
+            System.out.println("Recorder installed=" + installed);
+        } catch (Exception ex) {
+            System.err.println(
+                    "Unable to verify recorder installation: " + ex.getMessage()
+            );
+        }
 
         System.out.println(
                 "Angular recorder opened: " + url

@@ -1,0 +1,2511 @@
+{
+  "project" : "angular-app",
+  "runId" : "run-6e94773a",
+  "startUrl" : "http://localhost:4200",
+  "recordedAt" : "2026-09-05T07:07:52.675542200Z",
+  "events" : [ {
+    "sequence" : 1,
+    "timestamp" : 1788591916492,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Text Input (Full Name)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Text Input (Full Name)",
+      "candidates" : {
+        "LABEL" : "Text Input (Full Name)",
+        "ACCESSIBLE_NAME" : "Text Input (Full Name)",
+        "FORM_CONTROL_NAME" : "fullName",
+        "ID" : "fullName",
+        "PLACEHOLDER" : "John Doe",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Durgendra",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 2,
+    "timestamp" : 1788591916547,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "TEXT",
+    "input" : "Text Input (Full Name)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Text Input (Full Name)",
+      "candidates" : {
+        "LABEL" : "Text Input (Full Name)",
+        "ACCESSIBLE_NAME" : "Text Input (Full Name)",
+        "FORM_CONTROL_NAME" : "fullName",
+        "ID" : "fullName",
+        "PLACEHOLDER" : "John Doe",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 3,
+    "timestamp" : 1788591916549,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Text Input (Full Name)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Text Input (Full Name)",
+      "candidates" : {
+        "LABEL" : "Text Input (Full Name)",
+        "ACCESSIBLE_NAME" : "Text Input (Full Name)",
+        "FORM_CONTROL_NAME" : "fullName",
+        "ID" : "fullName",
+        "PLACEHOLDER" : "John Doe",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Durgendra",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 4,
+    "timestamp" : 1788591921316,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "EMAIL",
+    "input" : "Email Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Email Input",
+      "candidates" : {
+        "LABEL" : "Email Input",
+        "ACCESSIBLE_NAME" : "Email Input",
+        "FORM_CONTROL_NAME" : "userEmail",
+        "ID" : "userEmail",
+        "PLACEHOLDER" : "john@example.com",
+        "HTML_INPUT_TYPE" : "email"
+      }
+    },
+    "value" : {
+      "raw" : "aa@aa.zz",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 5,
+    "timestamp" : 1788591922603,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "EMAIL",
+    "input" : "Email Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Email Input",
+      "candidates" : {
+        "LABEL" : "Email Input",
+        "ACCESSIBLE_NAME" : "Email Input",
+        "FORM_CONTROL_NAME" : "userEmail",
+        "ID" : "userEmail",
+        "PLACEHOLDER" : "john@example.com",
+        "HTML_INPUT_TYPE" : "email"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 6,
+    "timestamp" : 1788591922605,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "EMAIL",
+    "input" : "Email Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Email Input",
+      "candidates" : {
+        "LABEL" : "Email Input",
+        "ACCESSIBLE_NAME" : "Email Input",
+        "FORM_CONTROL_NAME" : "userEmail",
+        "ID" : "userEmail",
+        "PLACEHOLDER" : "john@example.com",
+        "HTML_INPUT_TYPE" : "email"
+      }
+    },
+    "value" : {
+      "raw" : "aa@aa.zz",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 7,
+    "timestamp" : 1788591930434,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEL",
+    "input" : "Telephone Input (10-Digit Mobile)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Telephone Input (10-Digit Mobile)",
+      "candidates" : {
+        "LABEL" : "Telephone Input (10-Digit Mobile)",
+        "ACCESSIBLE_NAME" : "Telephone Input (10-Digit Mobile)",
+        "FORM_CONTROL_NAME" : "userPhone",
+        "ID" : "userPhone",
+        "PLACEHOLDER" : "9876543210",
+        "HTML_INPUT_TYPE" : "tel"
+      }
+    },
+    "value" : {
+      "raw" : "1234565432",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 8,
+    "timestamp" : 1788591936287,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "PASSWORD",
+    "input" : "Password Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Password Input",
+      "candidates" : {
+        "LABEL" : "Password Input",
+        "ACCESSIBLE_NAME" : "Password Input",
+        "FORM_CONTROL_NAME" : "secretPassword",
+        "ID" : "secretPassword",
+        "PLACEHOLDER" : "••••••••",
+        "HTML_INPUT_TYPE" : "password"
+      }
+    },
+    "value" : {
+      "raw" : "123456",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 9,
+    "timestamp" : 1788591936505,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 10,
+    "timestamp" : 1788591938939,
+    "stage" : 1,
+    "actionType" : "RADIO",
+    "inputType" : "RADIO",
+    "input" : "Male",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Male",
+      "candidates" : {
+        "LABEL" : "Male",
+        "ACCESSIBLE_NAME" : "Male",
+        "FORM_CONTROL_NAME" : "genderSelection",
+        "HTML_INPUT_TYPE" : "radio"
+      }
+    },
+    "value" : {
+      "raw" : "M",
+      "searchText" : null,
+      "selectedValue" : "M",
+      "selectedText" : "Male",
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 11,
+    "timestamp" : 1788591941068,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Dropdown Input (Country Select)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Dropdown Input (Country Select)",
+      "candidates" : {
+        "LABEL" : "Dropdown Input (Country Select)",
+        "ACCESSIBLE_NAME" : "Dropdown Input (Country Select)",
+        "FORM_CONTROL_NAME" : "chosenCountry",
+        "ID" : "chosenCountry",
+        "TEXT" : "Choose a destination India United States United Kingdom Canada Australia"
+      }
+    },
+    "value" : {
+      "raw" : "India",
+      "searchText" : null,
+      "selectedValue" : "India",
+      "selectedText" : "India",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 12,
+    "timestamp" : 1788591945039,
+    "stage" : 1,
+    "actionType" : "SEARCH",
+    "inputType" : "SEARCH",
+    "input" : "Search Style Single Selection Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Search Style Single Selection Input",
+      "candidates" : {
+        "LABEL" : "Search Style Single Selection Input",
+        "ACCESSIBLE_NAME" : "Search Style Single Selection Input",
+        "ID" : "skillSearch",
+        "PLACEHOLDER" : "Type skills (e.g. Angular)...",
+        "HTML_INPUT_TYPE" : "search"
+      }
+    },
+    "value" : {
+      "raw" : "A",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 13,
+    "timestamp" : 1788591945264,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "li",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Angular",
+      "candidates" : {
+        "TEXT" : "Angular"
+      }
+    },
+    "value" : {
+      "raw" : "Angular",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 14,
+    "timestamp" : 1788591946709,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Agree to mandatory policies.",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Agree to mandatory policies.",
+      "candidates" : {
+        "LABEL" : "Agree to mandatory policies.",
+        "ACCESSIBLE_NAME" : "Agree to mandatory policies.",
+        "FORM_CONTROL_NAME" : "optInNewsletter",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 15,
+    "timestamp" : 1788591948563,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 16,
+    "timestamp" : 1788591950769,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+      "candidates" : {
+        "LABEL" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "ACCESSIBLE_NAME" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "FORM_CONTROL_NAME" : "chosenFrameworks",
+        "ID" : "chosenFrameworks",
+        "TEXT" : "React Angular Vue Svelte Solid Next.js Nuxt"
+      }
+    },
+    "value" : {
+      "raw" : "0: 'React'",
+      "searchText" : null,
+      "selectedValue" : "0: 'React'",
+      "selectedText" : "React",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 17,
+    "timestamp" : 1788591952973,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+      "candidates" : {
+        "LABEL" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "ACCESSIBLE_NAME" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "FORM_CONTROL_NAME" : "chosenFrameworks",
+        "ID" : "chosenFrameworks",
+        "TEXT" : "React Angular Vue Svelte Solid Next.js Nuxt"
+      }
+    },
+    "value" : {
+      "raw" : "1: 'Angular'",
+      "searchText" : null,
+      "selectedValue" : "1: 'Angular'",
+      "selectedText" : "Angular",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 18,
+    "timestamp" : 1788591954754,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+      "candidates" : {
+        "LABEL" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "ACCESSIBLE_NAME" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "FORM_CONTROL_NAME" : "chosenFrameworks",
+        "ID" : "chosenFrameworks",
+        "TEXT" : "React Angular Vue Svelte Solid Next.js Nuxt"
+      }
+    },
+    "value" : {
+      "raw" : "0: 'React'",
+      "searchText" : null,
+      "selectedValue" : "0: 'React'",
+      "selectedText" : "React",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 19,
+    "timestamp" : 1788591959793,
+    "stage" : 1,
+    "actionType" : "SEARCH",
+    "inputType" : "SEARCH",
+    "input" : "Multi-Select Search Input Style",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Search Input Style",
+      "candidates" : {
+        "LABEL" : "Multi-Select Search Input Style",
+        "ACCESSIBLE_NAME" : "Multi-Select Search Input Style",
+        "ID" : "interestSearch",
+        "PLACEHOLDER" : "Type hobbies (e.g. Gaming, Music)...",
+        "HTML_INPUT_TYPE" : "search"
+      }
+    },
+    "value" : {
+      "raw" : "Gam",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 20,
+    "timestamp" : 1788591960017,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "li",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "+ Gaming",
+      "candidates" : {
+        "TEXT" : "+ Gaming"
+      }
+    },
+    "value" : {
+      "raw" : "+ Gaming",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 21,
+    "timestamp" : 1788591964322,
+    "stage" : 1,
+    "actionType" : "SEARCH",
+    "inputType" : "SEARCH",
+    "input" : "Multi-Select Search Input Style",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Search Input Style",
+      "candidates" : {
+        "LABEL" : "Multi-Select Search Input Style",
+        "ACCESSIBLE_NAME" : "Multi-Select Search Input Style",
+        "ID" : "interestSearch",
+        "PLACEHOLDER" : "Type hobbies (e.g. Gaming, Music)...",
+        "HTML_INPUT_TYPE" : "search"
+      }
+    },
+    "value" : {
+      "raw" : "Mu",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 22,
+    "timestamp" : 1788591964541,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "li",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "+ Music",
+      "candidates" : {
+        "TEXT" : "+ Music"
+      }
+    },
+    "value" : {
+      "raw" : "+ Music",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 23,
+    "timestamp" : 1788591976183,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 24,
+    "timestamp" : 1788591977970,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "div",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Select Fluent Languages... ▼",
+      "candidates" : {
+        "TEXT" : "Select Fluent Languages... ▼"
+      }
+    },
+    "value" : {
+      "raw" : "Select Fluent Languages... ▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 25,
+    "timestamp" : 1788591979288,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "English",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "English",
+      "candidates" : {
+        "LABEL" : "English",
+        "ACCESSIBLE_NAME" : "English",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 26,
+    "timestamp" : 1788591980886,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Spanish",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Spanish",
+      "candidates" : {
+        "LABEL" : "Spanish",
+        "ACCESSIBLE_NAME" : "Spanish",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 27,
+    "timestamp" : 1788591982969,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "html",
+    "identifyBy" : {
+      "preferredStrategy" : "INPUT",
+      "preferredValue" : "html",
+      "candidates" : { }
+    },
+    "value" : {
+      "raw" : "html",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 28,
+    "timestamp" : 1788591985384,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "span",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "▼",
+      "candidates" : {
+        "TEXT" : "▼"
+      }
+    },
+    "value" : {
+      "raw" : "▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 29,
+    "timestamp" : 1788591987282,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "div",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Select Bank Branches... ▼",
+      "candidates" : {
+        "TEXT" : "Select Bank Branches... ▼"
+      }
+    },
+    "value" : {
+      "raw" : "Select Bank Branches... ▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 30,
+    "timestamp" : 1788591988956,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Chase Bank",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Chase Bank",
+      "candidates" : {
+        "LABEL" : "Chase Bank",
+        "ACCESSIBLE_NAME" : "Chase Bank",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 31,
+    "timestamp" : 1788591990181,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Citibank",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Citibank",
+      "candidates" : {
+        "LABEL" : "Citibank",
+        "ACCESSIBLE_NAME" : "Citibank",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 32,
+    "timestamp" : 1788591993405,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "span",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "▼",
+      "candidates" : {
+        "TEXT" : "▼"
+      }
+    },
+    "value" : {
+      "raw" : "▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 33,
+    "timestamp" : 1788591995383,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 34,
+    "timestamp" : 1788591998211,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "aa",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 35,
+    "timestamp" : 1788591998227,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 36,
+    "timestamp" : 1788591998228,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "aa",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 37,
+    "timestamp" : 1788592000926,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Job Title / Role",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Job Title / Role",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Job Title / Role",
+        "FORM_CONTROL_NAME" : "role",
+        "PLACEHOLDER" : "Job Title / Role",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "aa",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 38,
+    "timestamp" : 1788592001142,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "+ Add Another New Record",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "+ Add Another New Record",
+      "candidates" : {
+        "TEXT" : "+ Add Another New Record"
+      }
+    },
+    "value" : {
+      "raw" : "+ Add Another New Record",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 39,
+    "timestamp" : 1788592004431,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 40,
+    "timestamp" : 1788592004432,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Company Name",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "ww",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 41,
+    "timestamp" : 1788592008130,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Job Title / Role",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Job Title / Role",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Job Title / Role",
+        "FORM_CONTROL_NAME" : "role",
+        "PLACEHOLDER" : "Job Title / Role",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "ww",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 42,
+    "timestamp" : 1788592008350,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 43,
+    "timestamp" : 1788592013813,
+    "stage" : 1,
+    "actionType" : "DATE_INPUT",
+    "inputType" : "DATE",
+    "input" : "Date Picker Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Date Picker Input",
+      "candidates" : {
+        "LABEL" : "Date Picker Input",
+        "ACCESSIBLE_NAME" : "Date Picker Input",
+        "FORM_CONTROL_NAME" : "profileBirthDate",
+        "ID" : "profileBirthDate",
+        "HTML_INPUT_TYPE" : "date"
+      }
+    },
+    "value" : {
+      "raw" : "2026-09-05",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 44,
+    "timestamp" : 1788592020470,
+    "stage" : 1,
+    "actionType" : "DATE_INPUT",
+    "inputType" : "DATE",
+    "input" : "Time Input Control",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Time Input Control",
+      "candidates" : {
+        "LABEL" : "Time Input Control",
+        "ACCESSIBLE_NAME" : "Time Input Control",
+        "FORM_CONTROL_NAME" : "preferredTime",
+        "ID" : "preferredTime",
+        "HTML_INPUT_TYPE" : "time"
+      }
+    },
+    "value" : {
+      "raw" : "12:36",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 45,
+    "timestamp" : 1788592022924,
+    "stage" : 1,
+    "actionType" : "DATE_INPUT",
+    "inputType" : "TEXT",
+    "input" : "Week Input Control",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Week Input Control",
+      "candidates" : {
+        "LABEL" : "Week Input Control",
+        "ACCESSIBLE_NAME" : "Week Input Control",
+        "FORM_CONTROL_NAME" : "appointmentWeek",
+        "ID" : "appointmentWeek",
+        "HTML_INPUT_TYPE" : "week"
+      }
+    },
+    "value" : {
+      "raw" : "2026-W36",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 46,
+    "timestamp" : 1788592026531,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "FILE",
+    "input" : "File Upload Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "File Upload Input",
+      "candidates" : {
+        "LABEL" : "File Upload Input",
+        "ACCESSIBLE_NAME" : "File Upload Input",
+        "FORM_CONTROL_NAME" : "uploadedAvatar",
+        "ID" : "uploadedAvatar",
+        "HTML_INPUT_TYPE" : "file"
+      }
+    },
+    "value" : {
+      "raw" : "File Upload Input",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 47,
+    "timestamp" : 1788592034768,
+    "stage" : 1,
+    "actionType" : "FILE_UPLOAD",
+    "inputType" : "FILE",
+    "input" : "File Upload Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "File Upload Input",
+      "candidates" : {
+        "LABEL" : "File Upload Input",
+        "ACCESSIBLE_NAME" : "File Upload Input",
+        "FORM_CONTROL_NAME" : "uploadedAvatar",
+        "ID" : "uploadedAvatar",
+        "HTML_INPUT_TYPE" : "file"
+      }
+    },
+    "value" : {
+      "raw" : null,
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : "photo_28902951.jpg",
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 48,
+    "timestamp" : 1788592063595,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXTAREA",
+    "input" : "Textarea Description Multi-Line Block",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Textarea Description Multi-Line Block",
+      "candidates" : {
+        "LABEL" : "Textarea Description Multi-Line Block",
+        "ACCESSIBLE_NAME" : "Textarea Description Multi-Line Block",
+        "FORM_CONTROL_NAME" : "userBiography",
+        "ID" : "userBiography",
+        "PLACEHOLDER" : "Briefly present your background profiling context details..."
+      }
+    },
+    "value" : {
+      "raw" : "ghhghghhghgh",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 49,
+    "timestamp" : 1788592063813,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Complete & Submit",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Complete & Submit",
+      "candidates" : {
+        "TEXT" : "Complete & Submit"
+      }
+    },
+    "value" : {
+      "raw" : "Complete & Submit",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 50,
+    "timestamp" : 1788591916492,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Text Input (Full Name)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Text Input (Full Name)",
+      "candidates" : {
+        "LABEL" : "Text Input (Full Name)",
+        "ACCESSIBLE_NAME" : "Text Input (Full Name)",
+        "FORM_CONTROL_NAME" : "fullName",
+        "ID" : "fullName",
+        "PLACEHOLDER" : "John Doe",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Durgendra",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 51,
+    "timestamp" : 1788591916547,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "TEXT",
+    "input" : "Text Input (Full Name)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Text Input (Full Name)",
+      "candidates" : {
+        "LABEL" : "Text Input (Full Name)",
+        "ACCESSIBLE_NAME" : "Text Input (Full Name)",
+        "FORM_CONTROL_NAME" : "fullName",
+        "ID" : "fullName",
+        "PLACEHOLDER" : "John Doe",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 52,
+    "timestamp" : 1788591916549,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Text Input (Full Name)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Text Input (Full Name)",
+      "candidates" : {
+        "LABEL" : "Text Input (Full Name)",
+        "ACCESSIBLE_NAME" : "Text Input (Full Name)",
+        "FORM_CONTROL_NAME" : "fullName",
+        "ID" : "fullName",
+        "PLACEHOLDER" : "John Doe",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Durgendra",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 53,
+    "timestamp" : 1788591921316,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "EMAIL",
+    "input" : "Email Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Email Input",
+      "candidates" : {
+        "LABEL" : "Email Input",
+        "ACCESSIBLE_NAME" : "Email Input",
+        "FORM_CONTROL_NAME" : "userEmail",
+        "ID" : "userEmail",
+        "PLACEHOLDER" : "john@example.com",
+        "HTML_INPUT_TYPE" : "email"
+      }
+    },
+    "value" : {
+      "raw" : "aa@aa.zz",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 54,
+    "timestamp" : 1788591922603,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "EMAIL",
+    "input" : "Email Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Email Input",
+      "candidates" : {
+        "LABEL" : "Email Input",
+        "ACCESSIBLE_NAME" : "Email Input",
+        "FORM_CONTROL_NAME" : "userEmail",
+        "ID" : "userEmail",
+        "PLACEHOLDER" : "john@example.com",
+        "HTML_INPUT_TYPE" : "email"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 55,
+    "timestamp" : 1788591922605,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "EMAIL",
+    "input" : "Email Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Email Input",
+      "candidates" : {
+        "LABEL" : "Email Input",
+        "ACCESSIBLE_NAME" : "Email Input",
+        "FORM_CONTROL_NAME" : "userEmail",
+        "ID" : "userEmail",
+        "PLACEHOLDER" : "john@example.com",
+        "HTML_INPUT_TYPE" : "email"
+      }
+    },
+    "value" : {
+      "raw" : "aa@aa.zz",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 56,
+    "timestamp" : 1788591930434,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEL",
+    "input" : "Telephone Input (10-Digit Mobile)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Telephone Input (10-Digit Mobile)",
+      "candidates" : {
+        "LABEL" : "Telephone Input (10-Digit Mobile)",
+        "ACCESSIBLE_NAME" : "Telephone Input (10-Digit Mobile)",
+        "FORM_CONTROL_NAME" : "userPhone",
+        "ID" : "userPhone",
+        "PLACEHOLDER" : "9876543210",
+        "HTML_INPUT_TYPE" : "tel"
+      }
+    },
+    "value" : {
+      "raw" : "1234565432",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 57,
+    "timestamp" : 1788591936287,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "PASSWORD",
+    "input" : "Password Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Password Input",
+      "candidates" : {
+        "LABEL" : "Password Input",
+        "ACCESSIBLE_NAME" : "Password Input",
+        "FORM_CONTROL_NAME" : "secretPassword",
+        "ID" : "secretPassword",
+        "PLACEHOLDER" : "••••••••",
+        "HTML_INPUT_TYPE" : "password"
+      }
+    },
+    "value" : {
+      "raw" : "123456",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 58,
+    "timestamp" : 1788591936505,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 59,
+    "timestamp" : 1788591938939,
+    "stage" : 1,
+    "actionType" : "RADIO",
+    "inputType" : "RADIO",
+    "input" : "Male",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Male",
+      "candidates" : {
+        "LABEL" : "Male",
+        "ACCESSIBLE_NAME" : "Male",
+        "FORM_CONTROL_NAME" : "genderSelection",
+        "HTML_INPUT_TYPE" : "radio"
+      }
+    },
+    "value" : {
+      "raw" : "M",
+      "searchText" : null,
+      "selectedValue" : "M",
+      "selectedText" : "Male",
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 60,
+    "timestamp" : 1788591941068,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Dropdown Input (Country Select)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Dropdown Input (Country Select)",
+      "candidates" : {
+        "LABEL" : "Dropdown Input (Country Select)",
+        "ACCESSIBLE_NAME" : "Dropdown Input (Country Select)",
+        "FORM_CONTROL_NAME" : "chosenCountry",
+        "ID" : "chosenCountry",
+        "TEXT" : "Choose a destination India United States United Kingdom Canada Australia"
+      }
+    },
+    "value" : {
+      "raw" : "India",
+      "searchText" : null,
+      "selectedValue" : "India",
+      "selectedText" : "India",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 61,
+    "timestamp" : 1788591945039,
+    "stage" : 1,
+    "actionType" : "SEARCH",
+    "inputType" : "SEARCH",
+    "input" : "Search Style Single Selection Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Search Style Single Selection Input",
+      "candidates" : {
+        "LABEL" : "Search Style Single Selection Input",
+        "ACCESSIBLE_NAME" : "Search Style Single Selection Input",
+        "ID" : "skillSearch",
+        "PLACEHOLDER" : "Type skills (e.g. Angular)...",
+        "HTML_INPUT_TYPE" : "search"
+      }
+    },
+    "value" : {
+      "raw" : "A",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 62,
+    "timestamp" : 1788591945264,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "li",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Angular",
+      "candidates" : {
+        "TEXT" : "Angular"
+      }
+    },
+    "value" : {
+      "raw" : "Angular",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 63,
+    "timestamp" : 1788591946709,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Agree to mandatory policies.",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Agree to mandatory policies.",
+      "candidates" : {
+        "LABEL" : "Agree to mandatory policies.",
+        "ACCESSIBLE_NAME" : "Agree to mandatory policies.",
+        "FORM_CONTROL_NAME" : "optInNewsletter",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 64,
+    "timestamp" : 1788591948563,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 65,
+    "timestamp" : 1788591950769,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+      "candidates" : {
+        "LABEL" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "ACCESSIBLE_NAME" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "FORM_CONTROL_NAME" : "chosenFrameworks",
+        "ID" : "chosenFrameworks",
+        "TEXT" : "React Angular Vue Svelte Solid Next.js Nuxt"
+      }
+    },
+    "value" : {
+      "raw" : "0: 'React'",
+      "searchText" : null,
+      "selectedValue" : "0: 'React'",
+      "selectedText" : "React",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 66,
+    "timestamp" : 1788591952973,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+      "candidates" : {
+        "LABEL" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "ACCESSIBLE_NAME" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "FORM_CONTROL_NAME" : "chosenFrameworks",
+        "ID" : "chosenFrameworks",
+        "TEXT" : "React Angular Vue Svelte Solid Next.js Nuxt"
+      }
+    },
+    "value" : {
+      "raw" : "1: 'Angular'",
+      "searchText" : null,
+      "selectedValue" : "1: 'Angular'",
+      "selectedText" : "Angular",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 67,
+    "timestamp" : 1788591954754,
+    "stage" : 1,
+    "actionType" : "SELECT",
+    "inputType" : "SELECT",
+    "input" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+      "candidates" : {
+        "LABEL" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "ACCESSIBLE_NAME" : "Multi-Select Dropdown Input (Hold Ctrl/Cmd to pick multiple)",
+        "FORM_CONTROL_NAME" : "chosenFrameworks",
+        "ID" : "chosenFrameworks",
+        "TEXT" : "React Angular Vue Svelte Solid Next.js Nuxt"
+      }
+    },
+    "value" : {
+      "raw" : "0: 'React'",
+      "searchText" : null,
+      "selectedValue" : "0: 'React'",
+      "selectedText" : "React",
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 68,
+    "timestamp" : 1788591959793,
+    "stage" : 1,
+    "actionType" : "SEARCH",
+    "inputType" : "SEARCH",
+    "input" : "Multi-Select Search Input Style",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Search Input Style",
+      "candidates" : {
+        "LABEL" : "Multi-Select Search Input Style",
+        "ACCESSIBLE_NAME" : "Multi-Select Search Input Style",
+        "ID" : "interestSearch",
+        "PLACEHOLDER" : "Type hobbies (e.g. Gaming, Music)...",
+        "HTML_INPUT_TYPE" : "search"
+      }
+    },
+    "value" : {
+      "raw" : "Gam",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 69,
+    "timestamp" : 1788591960017,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "li",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "+ Gaming",
+      "candidates" : {
+        "TEXT" : "+ Gaming"
+      }
+    },
+    "value" : {
+      "raw" : "+ Gaming",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 70,
+    "timestamp" : 1788591964322,
+    "stage" : 1,
+    "actionType" : "SEARCH",
+    "inputType" : "SEARCH",
+    "input" : "Multi-Select Search Input Style",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Multi-Select Search Input Style",
+      "candidates" : {
+        "LABEL" : "Multi-Select Search Input Style",
+        "ACCESSIBLE_NAME" : "Multi-Select Search Input Style",
+        "ID" : "interestSearch",
+        "PLACEHOLDER" : "Type hobbies (e.g. Gaming, Music)...",
+        "HTML_INPUT_TYPE" : "search"
+      }
+    },
+    "value" : {
+      "raw" : "Mu",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 71,
+    "timestamp" : 1788591964541,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "li",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "+ Music",
+      "candidates" : {
+        "TEXT" : "+ Music"
+      }
+    },
+    "value" : {
+      "raw" : "+ Music",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 72,
+    "timestamp" : 1788591976183,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 73,
+    "timestamp" : 1788591977970,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "div",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Select Fluent Languages... ▼",
+      "candidates" : {
+        "TEXT" : "Select Fluent Languages... ▼"
+      }
+    },
+    "value" : {
+      "raw" : "Select Fluent Languages... ▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 74,
+    "timestamp" : 1788591979288,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "English",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "English",
+      "candidates" : {
+        "LABEL" : "English",
+        "ACCESSIBLE_NAME" : "English",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 75,
+    "timestamp" : 1788591980886,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Spanish",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Spanish",
+      "candidates" : {
+        "LABEL" : "Spanish",
+        "ACCESSIBLE_NAME" : "Spanish",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 76,
+    "timestamp" : 1788591982969,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "html",
+    "identifyBy" : {
+      "preferredStrategy" : "INPUT",
+      "preferredValue" : "html",
+      "candidates" : { }
+    },
+    "value" : {
+      "raw" : "html",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 77,
+    "timestamp" : 1788591985384,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "span",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "▼",
+      "candidates" : {
+        "TEXT" : "▼"
+      }
+    },
+    "value" : {
+      "raw" : "▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 78,
+    "timestamp" : 1788591987282,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "div",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Select Bank Branches... ▼",
+      "candidates" : {
+        "TEXT" : "Select Bank Branches... ▼"
+      }
+    },
+    "value" : {
+      "raw" : "Select Bank Branches... ▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 79,
+    "timestamp" : 1788591988956,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Chase Bank",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Chase Bank",
+      "candidates" : {
+        "LABEL" : "Chase Bank",
+        "ACCESSIBLE_NAME" : "Chase Bank",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 80,
+    "timestamp" : 1788591990181,
+    "stage" : 1,
+    "actionType" : "CHECK",
+    "inputType" : "CHECKBOX",
+    "input" : "Citibank",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Citibank",
+      "candidates" : {
+        "LABEL" : "Citibank",
+        "ACCESSIBLE_NAME" : "Citibank",
+        "HTML_INPUT_TYPE" : "checkbox"
+      }
+    },
+    "value" : {
+      "raw" : "on",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : true
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 81,
+    "timestamp" : 1788591993405,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "CUSTOM",
+    "input" : "span",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "▼",
+      "candidates" : {
+        "TEXT" : "▼"
+      }
+    },
+    "value" : {
+      "raw" : "▼",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 82,
+    "timestamp" : 1788591995383,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 83,
+    "timestamp" : 1788591998211,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "aa",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 84,
+    "timestamp" : 1788591998227,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 85,
+    "timestamp" : 1788591998228,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "aa",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 86,
+    "timestamp" : 1788592000926,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Job Title / Role",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Job Title / Role",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Job Title / Role",
+        "FORM_CONTROL_NAME" : "role",
+        "PLACEHOLDER" : "Job Title / Role",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "aa",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 87,
+    "timestamp" : 1788592001142,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "+ Add Another New Record",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "+ Add Another New Record",
+      "candidates" : {
+        "TEXT" : "+ Add Another New Record"
+      }
+    },
+    "value" : {
+      "raw" : "+ Add Another New Record",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 88,
+    "timestamp" : 1788592004431,
+    "stage" : 1,
+    "actionType" : "KEY",
+    "inputType" : "TEXT",
+    "input" : "company",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "Tab",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 89,
+    "timestamp" : 1788592004432,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Company Name",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Company Name",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Company Name",
+        "FORM_CONTROL_NAME" : "company",
+        "PLACEHOLDER" : "Company Name",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "ww",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 90,
+    "timestamp" : 1788592008130,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXT",
+    "input" : "Job Title / Role",
+    "identifyBy" : {
+      "preferredStrategy" : "ACCESSIBLE_NAME",
+      "preferredValue" : "Job Title / Role",
+      "candidates" : {
+        "ACCESSIBLE_NAME" : "Job Title / Role",
+        "FORM_CONTROL_NAME" : "role",
+        "PLACEHOLDER" : "Job Title / Role",
+        "HTML_INPUT_TYPE" : "text"
+      }
+    },
+    "value" : {
+      "raw" : "ww",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 91,
+    "timestamp" : 1788592008350,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Continue",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Continue",
+      "candidates" : {
+        "TEXT" : "Continue"
+      }
+    },
+    "value" : {
+      "raw" : "Continue",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 92,
+    "timestamp" : 1788592013813,
+    "stage" : 1,
+    "actionType" : "DATE_INPUT",
+    "inputType" : "DATE",
+    "input" : "Date Picker Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Date Picker Input",
+      "candidates" : {
+        "LABEL" : "Date Picker Input",
+        "ACCESSIBLE_NAME" : "Date Picker Input",
+        "FORM_CONTROL_NAME" : "profileBirthDate",
+        "ID" : "profileBirthDate",
+        "HTML_INPUT_TYPE" : "date"
+      }
+    },
+    "value" : {
+      "raw" : "2026-09-05",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 93,
+    "timestamp" : 1788592020470,
+    "stage" : 1,
+    "actionType" : "DATE_INPUT",
+    "inputType" : "DATE",
+    "input" : "Time Input Control",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Time Input Control",
+      "candidates" : {
+        "LABEL" : "Time Input Control",
+        "ACCESSIBLE_NAME" : "Time Input Control",
+        "FORM_CONTROL_NAME" : "preferredTime",
+        "ID" : "preferredTime",
+        "HTML_INPUT_TYPE" : "time"
+      }
+    },
+    "value" : {
+      "raw" : "12:36",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 94,
+    "timestamp" : 1788592022924,
+    "stage" : 1,
+    "actionType" : "DATE_INPUT",
+    "inputType" : "TEXT",
+    "input" : "Week Input Control",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Week Input Control",
+      "candidates" : {
+        "LABEL" : "Week Input Control",
+        "ACCESSIBLE_NAME" : "Week Input Control",
+        "FORM_CONTROL_NAME" : "appointmentWeek",
+        "ID" : "appointmentWeek",
+        "HTML_INPUT_TYPE" : "week"
+      }
+    },
+    "value" : {
+      "raw" : "2026-W36",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 95,
+    "timestamp" : 1788592026531,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "FILE",
+    "input" : "File Upload Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "File Upload Input",
+      "candidates" : {
+        "LABEL" : "File Upload Input",
+        "ACCESSIBLE_NAME" : "File Upload Input",
+        "FORM_CONTROL_NAME" : "uploadedAvatar",
+        "ID" : "uploadedAvatar",
+        "HTML_INPUT_TYPE" : "file"
+      }
+    },
+    "value" : {
+      "raw" : "File Upload Input",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 96,
+    "timestamp" : 1788592034768,
+    "stage" : 1,
+    "actionType" : "FILE_UPLOAD",
+    "inputType" : "FILE",
+    "input" : "File Upload Input",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "File Upload Input",
+      "candidates" : {
+        "LABEL" : "File Upload Input",
+        "ACCESSIBLE_NAME" : "File Upload Input",
+        "FORM_CONTROL_NAME" : "uploadedAvatar",
+        "ID" : "uploadedAvatar",
+        "HTML_INPUT_TYPE" : "file"
+      }
+    },
+    "value" : {
+      "raw" : null,
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : "photo_28902951.jpg",
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 97,
+    "timestamp" : 1788592063595,
+    "stage" : 1,
+    "actionType" : "INPUT",
+    "inputType" : "TEXTAREA",
+    "input" : "Textarea Description Multi-Line Block",
+    "identifyBy" : {
+      "preferredStrategy" : "LABEL",
+      "preferredValue" : "Textarea Description Multi-Line Block",
+      "candidates" : {
+        "LABEL" : "Textarea Description Multi-Line Block",
+        "ACCESSIBLE_NAME" : "Textarea Description Multi-Line Block",
+        "FORM_CONTROL_NAME" : "userBiography",
+        "ID" : "userBiography",
+        "PLACEHOLDER" : "Briefly present your background profiling context details..."
+      }
+    },
+    "value" : {
+      "raw" : "ghhghghhghgh",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  }, {
+    "sequence" : 98,
+    "timestamp" : 1788592063813,
+    "stage" : 1,
+    "actionType" : "CLICK",
+    "inputType" : "BUTTON",
+    "input" : "Complete & Submit",
+    "identifyBy" : {
+      "preferredStrategy" : "TEXT",
+      "preferredValue" : "Complete & Submit",
+      "candidates" : {
+        "TEXT" : "Complete & Submit"
+      }
+    },
+    "value" : {
+      "raw" : "Complete & Submit",
+      "searchText" : null,
+      "selectedValue" : null,
+      "selectedText" : null,
+      "fileName" : null,
+      "checked" : null
+    },
+    "url" : "http://localhost:4200/"
+  } ]
+}

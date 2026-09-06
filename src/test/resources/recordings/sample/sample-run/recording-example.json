@@ -1,0 +1,97 @@
+{
+  "project" : "sample",
+  "runId" : "sample-run",
+  "startUrl" : "http://localhost:4200",
+  "recordedAt" : "2026-09-05T00:00:00Z",
+  "events" : [
+    {
+      "sequence" : 1,
+      "timestamp" : 1,
+      "actionType" : "INPUT",
+      "inputType" : "TEXT",
+      "input" : "Customer Name",
+      "identifyBy" : {
+        "preferredStrategy" : "LABEL",
+        "preferredValue" : "Customer Name",
+        "candidates" : {
+          "LABEL" : "Customer Name",
+          "FORM_CONTROL_NAME" : "customerName",
+          "NAME" : "customerName",
+          "ID" : "customer-name"
+        }
+      },
+      "value" : {
+        "raw" : "Durgendra"
+      },
+      "url" : "http://localhost:4200/customer"
+    },
+    {
+      "sequence" : 2,
+      "timestamp" : 2,
+      "actionType" : "SEARCH_AND_SELECT",
+      "inputType" : "AUTOCOMPLETE",
+      "input" : "Customer",
+      "identifyBy" : {
+        "preferredStrategy" : "LABEL",
+        "preferredValue" : "Customer",
+        "candidates" : {
+          "LABEL" : "Customer",
+          "FORM_CONTROL_NAME" : "customer"
+        }
+      },
+      "value" : {
+        "searchText" : "Dur",
+        "selectedValue" : "Durgendra Kumar",
+        "selectedText" : "Durgendra Kumar"
+      },
+      "wait" : {
+        "type" : "OPTION_VISIBLE",
+        "target" : "Durgendra Kumar",
+        "role" : "option"
+      },
+      "url" : "http://localhost:4200/customer"
+    },
+    {
+      "sequence" : 3,
+      "timestamp" : 3,
+      "actionType" : "OPEN_POPUP",
+      "inputType" : "BUTTON",
+      "input" : "Add Attachment",
+      "identifyBy" : {
+        "preferredStrategy" : "TEXT",
+        "preferredValue" : "Add Attachment",
+        "candidates" : {
+          "ROLE" : "button",
+          "TEXT" : "Add Attachment"
+        }
+      },
+      "value" : {
+        "raw" : "Add Attachment"
+      },
+      "url" : "http://localhost:4200/customer"
+    },
+    {
+      "sequence" : 4,
+      "timestamp" : 4,
+      "actionType" : "FILE_UPLOAD",
+      "inputType" : "FILE",
+      "input" : "Attachment",
+      "identifyBy" : {
+        "preferredStrategy" : "LABEL",
+        "preferredValue" : "Attachment",
+        "candidates" : {
+          "LABEL" : "Attachment",
+          "NAME" : "attachment"
+        }
+      },
+      "value" : {
+        "fileName" : "invoice.pdf"
+      },
+      "context" : {
+        "type" : "DIALOG",
+        "name" : "Add Attachment"
+      },
+      "url" : "http://localhost:4200/customer"
+    }
+  ]
+}

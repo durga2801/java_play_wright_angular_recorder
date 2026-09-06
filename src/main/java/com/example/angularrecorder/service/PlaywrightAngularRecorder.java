@@ -112,16 +112,46 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
     public List<RecordedEvent> readEvents() {
 
+        System.out.println(
+                "Java rawEvents before fallback = "
+                        + rawEvents.size()
+        );
+
+        try {
+
+            Object browserCount =
+                    page.evaluate(
+                            "() => window.__angularRecorderEvents " +
+                                    "? window.__angularRecorderEvents.length : -1"
+                    );
+
+            System.out.println(
+                    "Browser event count = "
+                            + browserCount
+            );
+
+        } catch (Exception e) {
+
+            System.err.println(
+                    "Unable to inspect browser events: "
+                            + e.getMessage()
+            );
+        }
+
         mergeFallbackEvents();
+
+        System.out.println(
+                "Java rawEvents after fallback = "
+                        + rawEvents.size()
+        );
 
         List<RecordedEvent> result =
                 new ArrayList<>();
 
         long sequence = 1;
 
-        for (JsonNode node : dedupeRawEvents(
-                rawEvents
-        )) {
+        for (JsonNode node :
+                dedupeRawEvents(rawEvents)) {
 
             result.add(
                     toEvent(
@@ -131,8 +161,12 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             );
         }
 
-        return new EventNormalizer()
-                .normalize(result);
+        System.out.println(
+                "Converted events = "
+                        + result.size()
+        );
+
+        return result;
     }
 
     /*

@@ -461,7 +461,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         }
     }
 
-    private static final String RECORDING_SCRIPT = """
+     private static final String RECORDING_SCRIPT = """
 (() => {
 
     if (window.__angularRecorderInstalled) {
@@ -469,26 +469,22 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
     window.__angularRecorderInstalled = true;
-
     window.__angularRecorderEvents = [];
 
-    const PREFIX =
-        '__ANGULAR_RECORDER_EVENT__';
+    const PREFIX = '__ANGULAR_RECORDER_EVENT__';
 
-    const timers =
-        new WeakMap();
+    /*
+     * One logical state per form input / custom component.
+     *
+     * Important:
+     * the key is the complete logical input container,
+     * not the internal HTML input.
+     */
+    const controlStates = new WeakMap();
 
-    const pending =
-        new WeakMap();
-
+    let activeLogicalControl = null;
     let currentStage = 1;
-
-    let lastUrl =
-        location.href;
-
-    let lastMutationAt =
-        Date.now();
-
+    let lastUrl = location.href;
 
 
     /* =========================================================
@@ -509,6 +505,34 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         return result || null;
     }
 
+
+    function eventPath(event) {
+
+        if (!event?.composedPath) {
+            return [];
+        }
+
+        return event
+            .composedPath()
+            .filter(
+                node =>
+                    node &&
+                    node.nodeType === Node.ELEMENT_NODE
+            );
+    }
+
+
+    function eventElement(event) {
+
+        const path =
+            eventPath(event);
+
+        if (path.length) {
+            return path[0];
+        }
+
+        return event?.target || null;
+    }
 
 
     function shortText(element) {
@@ -533,151 +557,11 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
 
-
-    function eventElement(event) {
-
-        const path =
-            event &&
-            event.composedPath
-                ? event.composedPath()
-                : [];
-
-        for (const item of path) {
-
-            if (item &&
-                item.nodeType ===
-                Node.ELEMENT_NODE) {
-
-                return item;
-            }
-        }
-
-        return event
-            ? event.target
-            : null;
-    }
-
-
-
-    function eventPath(event) {
-
-        if (event &&
-            event.composedPath) {
-
-            return event
-                .composedPath()
-                .filter(
-                    x =>
-                        x &&
-                        x.nodeType ===
-                        Node.ELEMENT_NODE
-                );
-        }
-
-        return [];
-    }
-
-
-
-    function ancestors(element) {
-
-        const result = [];
-
-        let current =
-            element;
-
-        while (current &&
-               current !==
-               document.documentElement) {
-
-            result.push(current);
-
-            current =
-                current.parentElement;
-        }
-
-        return result;
-    }
-
-
-
     /* =========================================================
-       FIND ACTUAL CONTROL
+       CUSTOM ANGULAR CONTROL / DIRECTIVE DETECTION
        ========================================================= */
 
-    function isNativeOrSemanticControl(element) {
-
-        if (!element ||
-            !element.matches) {
-
-            return false;
-        }
-
-        return element.matches(`
-            input,
-            textarea,
-            select,
-            button,
-            a,
-            [contenteditable="true"],
-            [role="textbox"],
-            [role="searchbox"],
-            [role="combobox"],
-            [role="checkbox"],
-            [role="radio"],
-            [role="switch"],
-            [role="button"],
-            [role="link"],
-            [role="option"],
-            [role="menuitem"],
-            [role="slider"],
-            [role="spinbutton"]
-        `);
-    }
-
-
-
-    function closestMeaningful(
-        event) {
-
-        const path =
-            eventPath(event);
-
-        /*
-         * First prefer actual native/semantic input.
-         */
-        for (const node of path) {
-
-            if (isNativeOrSemanticControl(
-                node)) {
-
-                return node;
-            }
-        }
-
-        /*
-         * Then custom Angular component.
-         */
-        for (const node of path) {
-
-            if (isLogicalAngularHost(
-                node)) {
-
-                return node;
-            }
-        }
-
-        return eventElement(event);
-    }
-
-
-
-    /* =========================================================
-       GENERIC ANGULAR CUSTOM CONTROL DETECTION
-       ========================================================= */
-
-    function isLogicalAngularHost(
-        element) {
+    function isCustomAngularHost(element) {
 
         if (!element ||
             !element.getAttribute) {
@@ -687,18 +571,16 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
         const tag =
             (
-                element.tagName ||
-                ''
+                element.tagName || ''
             ).toLowerCase();
 
         /*
-         * Generic Angular/custom component.
-         *
-         * Example:
+         * Generic custom Angular/Web component:
          *
          * mt-dropdown
          * dcrm-dcrm-datepicker
-         * abc-customer-selector
+         * company-control
+         * abc-selector
          *
          * No component name is hardcoded.
          */
@@ -706,127 +588,208 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return true;
         }
 
-        if (
-            element.hasAttribute(
-                'formControlName'
-            ) ||
-            element.hasAttribute(
-                'formcontrolname'
-            ) ||
-            element.hasAttribute(
-                'controlName'
-            ) ||
-            element.hasAttribute(
-                'controlname'
-            ) ||
-            element.hasAttribute(
-                'ngModel'
-            ) ||
-            element.hasAttribute(
-                'ngmodel'
-            )
-        ) {
-
-            return true;
-        }
-
-        return false;
+        return (
+            element.hasAttribute('formControlName') ||
+            element.hasAttribute('formcontrolname') ||
+            element.hasAttribute('controlName') ||
+            element.hasAttribute('controlname') ||
+            element.hasAttribute('ngModel') ||
+            element.hasAttribute('ngmodel')
+        );
     }
 
 
+    function findCustomHost(element) {
 
-    function findLogicalAngularHost(
-        nativeElement,
-        event) {
+        let current =
+            element;
 
-        const nodes = [
-            ...eventPath(event),
-            ...ancestors(nativeElement)
-        ];
+        while (
+            current &&
+            current !== document.body
+        ) {
 
-        for (const node of nodes) {
-
-            if (node ===
-                nativeElement) {
-
-                continue;
+            if (isCustomAngularHost(current)) {
+                return current;
             }
 
-            if (isLogicalAngularHost(
-                node)) {
-
-                return node;
-            }
+            current =
+                current.parentElement;
         }
 
         return null;
     }
-
 
 
     /* =========================================================
-       CONTROL NAME
+       FORM GROUP / ONE DIV = ONE INPUT
        ========================================================= */
 
-    function controlName(
-        nativeElement,
-        customHost) {
+    function findFormGroup(element) {
 
-        const elements = [
-            nativeElement,
-            customHost
-        ];
-
-        for (const element of elements) {
-
-            if (!element ||
-                !element.getAttribute) {
-
-                continue;
-            }
-
-            const value =
-                clean(
-                    element.getAttribute(
-                        'formControlName'
-                    ) ||
-                    element.getAttribute(
-                        'formcontrolname'
-                    ) ||
-                    element.getAttribute(
-                        'controlName'
-                    ) ||
-                    element.getAttribute(
-                        'controlname'
-                    ) ||
-                    element.getAttribute(
-                        'name'
-                    ) ||
-                    element.getAttribute(
-                        'ng-reflect-name'
-                    )
-                );
-
-            if (value) {
-                return value;
-            }
+        if (!element?.closest) {
+            return null;
         }
 
-        return null;
+        return element.closest(`
+            .lmn-form-group,
+            .form-group,
+            .form-field,
+            .field,
+            .mat-mdc-form-field,
+            .mat-form-field,
+            .p-field,
+            .p-float-label,
+            [class*="form-group"],
+            [class*="form-field"]
+        `);
     }
 
+
+    function isEditableElement(element) {
+
+        if (!element?.matches) {
+            return false;
+        }
+
+        return element.matches(`
+            input:not([type="hidden"]),
+            textarea,
+            select,
+            [contenteditable="true"],
+            [role="textbox"],
+            [role="searchbox"],
+            [role="combobox"],
+            [role="slider"],
+            [role="spinbutton"]
+        `);
+    }
+
+
+    function findNativeInput(
+        root,
+        original
+    ) {
+
+        if (isEditableElement(original)) {
+            return original;
+        }
+
+        if (!root?.querySelector) {
+            return original;
+        }
+
+        return root.querySelector(`
+            input:not([type="hidden"]),
+            textarea,
+            select,
+            [contenteditable="true"],
+            [role="textbox"],
+            [role="searchbox"],
+            [role="combobox"],
+            [role="slider"],
+            [role="spinbutton"]
+        `) || original;
+    }
+
+
+    function resolveLogicalControl(element) {
+
+        if (!element) {
+            return null;
+        }
+
+        const host =
+            findCustomHost(element);
+
+        const group =
+            findFormGroup(
+                host || element
+            );
+
+        /*
+         * Requirement:
+         *
+         * one div / form-group represents one logical input.
+         */
+        const root =
+            group ||
+            host ||
+            element;
+
+        const nativeElement =
+            findNativeInput(
+                root,
+                element
+            );
+
+        return {
+            root,
+            group,
+            host,
+            nativeElement
+        };
+    }
 
 
     /* =========================================================
        LABEL DETECTION
        ========================================================= */
 
-    function labelledBy(
-        element) {
+    function cleanLabelText(label) {
 
-        if (!element ||
-            !element.getAttribute) {
+        if (!label) {
+            return null;
+        }
 
+        const clone =
+            label.cloneNode(true);
+
+        /*
+         * Remove tooltip, help, icons and validation decoration.
+         */
+        clone
+            .querySelectorAll(`
+                [role="tooltip"],
+                [class*="tooltip"],
+                [class*="error"],
+                [class*="helper"],
+                mat-icon,
+                svg,
+                small
+            `)
+            .forEach(
+                element =>
+                    element.remove()
+            );
+
+        let text =
+            clean(
+                clone.textContent
+            );
+
+        if (!text) {
+            return null;
+        }
+
+        /*
+         * Remove required markers such as:
+         *
+         * * Customer
+         */
+        text =
+            text.replace(
+                /^\\s*\\*+\\s*/,
+                ''
+            );
+
+        return clean(text);
+    }
+
+
+    function labelledBy(element) {
+
+        if (!element?.getAttribute) {
             return null;
         }
 
@@ -846,87 +809,49 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 .split(/\\s+/)
                 .map(
                     id =>
-                        document.getElementById(
-                            id
-                        )
+                        document.getElementById(id)
                 )
                 .filter(Boolean)
                 .map(
-                    element =>
-                        element.innerText ||
-                        element.textContent
+                    node =>
+                        node.innerText ||
+                        node.textContent
                 )
                 .join(' ')
         );
     }
 
 
-
-    function cleanLabelText(
-        label) {
-
-        if (!label) {
-            return null;
-        }
-
-        const clone =
-            label.cloneNode(true);
-
-        /*
-         * Remove tooltip/help/error decorations.
-         */
-        clone
-            .querySelectorAll(`
-                [role="tooltip"],
-                [class*="tooltip"],
-                [class*="error"],
-                mat-icon,
-                svg,
-                small
-            `)
-            .forEach(
-                element =>
-                    element.remove()
-            );
-
-        return clean(
-            clone.textContent
-        );
-    }
-
-
-
-    function associatedLabel(
-        element) {
+    function associatedLabel(element) {
 
         if (!element) {
             return null;
         }
 
-        if (element.labels &&
-            element.labels.length) {
+        /*
+         * HTML labels property.
+         */
+        if (
+            element.labels &&
+            element.labels.length
+        ) {
 
-            const result =
-                clean(
-                    Array.from(
-                        element.labels
-                    )
-                    .map(
-                        cleanLabelText
-                    )
-                    .filter(Boolean)
-                    .join(' ')
-                );
+            for (const label of element.labels) {
 
-            if (result) {
-                return result;
+                const text =
+                    cleanLabelText(label);
+
+                if (text) {
+                    return text;
+                }
             }
         }
 
+        /*
+         * label[for=id]
+         */
         const id =
-            clean(
-                element.id
-            );
+            clean(element.id);
 
         if (id) {
 
@@ -939,106 +864,56 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
                 if (label) {
 
-                    return cleanLabelText(
-                        label
-                    );
+                    const text =
+                        cleanLabelText(label);
+
+                    if (text) {
+                        return text;
+                    }
                 }
 
             } catch (_) {
             }
         }
 
+        /*
+         * wrapping label
+         */
         const wrapping =
-            element.closest
-                ? element.closest(
-                    'label'
-                )
-                : null;
+            element.closest?.('label');
 
         if (wrapping) {
 
-            const result =
-                cleanLabelText(
-                    wrapping
-                );
+            const text =
+                cleanLabelText(wrapping);
 
-            if (result) {
-                return result;
+            if (text) {
+                return text;
             }
         }
 
-        const ariaLabelled =
-            labelledBy(element);
-
-        if (ariaLabelled) {
-            return ariaLabelled;
-        }
-
-        return null;
+        return labelledBy(element);
     }
 
 
+    function labelFromFormGroup(control) {
 
-    function findFormContainer(
-        nativeElement,
-        customHost) {
+        const group =
+            control?.group;
 
-        const source =
-            customHost ||
-            nativeElement;
-
-        if (!source ||
-            !source.closest) {
-
+        if (!group) {
             return null;
         }
 
-        return source.closest(`
-            .form-group,
-            .lmn-form-group,
-            .form-field,
-            .field,
-            .mat-mdc-form-field,
-            .mat-form-field,
-            .p-field,
-            .p-float-label,
-            [class*="form-group"],
-            [class*="form-field"]
-        `);
-    }
-
-
-
-    function labelFromContainer(
-        nativeElement,
-        customHost) {
-
-        const container =
-            findFormContainer(
-                nativeElement,
-                customHost
-            );
-
-        if (!container) {
-            return null;
-        }
-
-        /*
-         * Prefer direct form label.
-         */
         const labels =
             Array.from(
-                container.querySelectorAll(
-                    'label'
-                )
+                group.querySelectorAll('label')
             );
 
         for (const label of labels) {
 
             const text =
-                cleanLabelText(
-                    label
-                );
+                cleanLabelText(label);
 
             if (text) {
                 return text;
@@ -1049,111 +924,108 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
 
+    function labelFor(control) {
 
-    function visibleLabel(
-        nativeElement,
-        customHost) {
+        if (!control) {
+            return null;
+        }
 
         return clean(
             associatedLabel(
-                nativeElement
+                control.nativeElement
             ) ||
 
-            nativeElement
+            control.nativeElement
                 ?.getAttribute
                 ?.('aria-label') ||
 
             labelledBy(
-                nativeElement
+                control.nativeElement
             ) ||
 
-            customHost
+            control.host
                 ?.getAttribute
                 ?.('aria-label') ||
 
             labelledBy(
-                customHost
+                control.host
             ) ||
 
-            labelFromContainer(
-                nativeElement,
-                customHost
+            labelFromFormGroup(
+                control
             )
         );
     }
 
 
-
     /* =========================================================
-       CONTROL RESOLUTION
+       CONTROL ATTRIBUTES
        ========================================================= */
 
-    function resolveControl(
-        event) {
+    function attributeFromControl(
+        control,
+        ...names
+    ) {
 
-        const nativeElement =
-            closestMeaningful(
-                event
-            );
+        const elements = [
+            control?.nativeElement,
+            control?.host
+        ];
 
-        const customHost =
-            findLogicalAngularHost(
-                nativeElement,
-                event
-            );
+        for (const element of elements) {
 
-        const label =
-            visibleLabel(
-                nativeElement,
-                customHost
-            );
+            if (!element?.getAttribute) {
+                continue;
+            }
 
-        const name =
-            controlName(
-                nativeElement,
-                customHost
-            );
+            for (const name of names) {
 
-        return {
-            nativeElement,
-            customHost,
-            label,
-            controlName: name
-        };
+                const value =
+                    clean(
+                        element.getAttribute(name)
+                    );
+
+                if (value) {
+                    return value;
+                }
+            }
+        }
+
+        return null;
     }
 
+
+    function formControlName(control) {
+
+        return attributeFromControl(
+            control,
+            'formControlName',
+            'formcontrolname'
+        );
+    }
+
+
+    function customControlName(control) {
+
+        return attributeFromControl(
+            control,
+            'controlName',
+            'controlname'
+        );
+    }
 
 
     /* =========================================================
        INPUT TYPE DETECTION
        ========================================================= */
 
-    function detectInputType(
-        control) {
+    function detectInputType(control) {
 
         const element =
-            control.nativeElement;
+            control?.nativeElement;
 
-        const host =
-            control.customHost;
-
-        const tag =
-            (
-                element
-                    ?.tagName ||
-                ''
-            ).toLowerCase();
-
-        const role =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('role') ||
-
-                host
-                    ?.getAttribute
-                    ?.('role')
-            );
+        const root =
+            control?.root;
 
         const type =
             clean(
@@ -1162,9 +1034,22 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     ?.('type')
             )?.toLowerCase();
 
+        const role =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('role') ||
+
+                control?.host
+                    ?.getAttribute
+                    ?.('role')
+            )?.toLowerCase();
+
+
         if (type === 'file') {
             return 'FILE';
         }
+
 
         if (
             type === 'checkbox' ||
@@ -1174,6 +1059,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return 'CHECKBOX';
         }
 
+
         if (
             type === 'radio' ||
             role === 'radio'
@@ -1182,9 +1068,11 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return 'RADIO';
         }
 
+
         if (role === 'switch') {
             return 'TOGGLE';
         }
+
 
         if (
             type === 'date' ||
@@ -1197,6 +1085,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return 'DATE';
         }
 
+
         if (
             type === 'range' ||
             role === 'slider'
@@ -1205,24 +1094,122 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return 'SLIDER';
         }
 
-        if (tag === 'textarea') {
+
+        if (
+            element
+                ?.tagName
+                ?.toLowerCase() ===
+            'textarea'
+        ) {
+
             return 'TEXTAREA';
         }
 
-        if (tag === 'select') {
+
+        if (
+            element
+                ?.tagName
+                ?.toLowerCase() ===
+            'select'
+        ) {
+
             return 'SELECT';
         }
 
+
+        /*
+         * Search/autocomplete can be either the native control itself
+         * or an internal element of a custom Angular component.
+         */
         if (
             role === 'combobox' ||
             role === 'searchbox' ||
             element
                 ?.getAttribute
-                ?.('aria-autocomplete')
+                ?.('aria-autocomplete') ||
+
+            root
+                ?.querySelector
+                ?.(`
+                    [role="combobox"],
+                    [role="searchbox"],
+                    input[type="search"],
+                    input[aria-autocomplete]
+                `)
         ) {
 
             return 'AUTOCOMPLETE';
         }
+
+
+        /*
+         * Generic custom file component.
+         */
+        if (
+            root
+                ?.querySelector
+                ?.('input[type="file"]')
+        ) {
+
+            return 'FILE';
+        }
+
+
+        /*
+         * Generic custom checkbox.
+         */
+        if (
+            root
+                ?.querySelector
+                ?.('input[type="checkbox"],[role="checkbox"]')
+        ) {
+
+            return 'CHECKBOX';
+        }
+
+
+        /*
+         * Generic custom radio.
+         */
+        if (
+            root
+                ?.querySelector
+                ?.('input[type="radio"],[role="radio"]')
+        ) {
+
+            return 'RADIO';
+        }
+
+
+        if (type === 'password') {
+            return 'PASSWORD';
+        }
+
+
+        if (type === 'email') {
+            return 'EMAIL';
+        }
+
+
+        if (type === 'number') {
+            return 'NUMBER';
+        }
+
+
+        if (type === 'tel') {
+            return 'TEL';
+        }
+
+
+        if (type === 'url') {
+            return 'URL';
+        }
+
+
+        if (type === 'search') {
+            return 'AUTOCOMPLETE';
+        }
+
 
         if (
             element
@@ -1232,343 +1219,158 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             return 'RICH_TEXT';
         }
 
-        if (type === 'password') {
-            return 'PASSWORD';
-        }
 
-        if (type === 'email') {
-            return 'EMAIL';
-        }
-
-        if (type === 'number') {
-            return 'NUMBER';
-        }
-
-        if (type === 'tel') {
-            return 'TEL';
-        }
-
-        if (type === 'url') {
-            return 'URL';
-        }
-
-        if (type === 'search') {
-            return 'SEARCH';
-        }
-
-        if (
-            tag === 'input' ||
-            role === 'textbox'
-        ) {
-
-            return 'TEXT';
-        }
-
-        if (
-            tag === 'button' ||
-            role === 'button'
-        ) {
-
-            return 'BUTTON';
-        }
-
-        if (
-            tag === 'a' ||
-            role === 'link'
-        ) {
-
-            return 'LINK';
-        }
-
-        if (role === 'option') {
-            return 'OPTION';
-        }
-
-        /*
-         * Generic custom component inference.
-         */
-        if (host) {
-
-            const hasFile =
-                host.querySelector(
-                    'input[type="file"]'
-                );
-
-            if (hasFile) {
-                return 'FILE';
-            }
-
-            const hasCheckbox =
-                host.querySelector(
-                    'input[type="checkbox"],[role="checkbox"]'
-                );
-
-            if (hasCheckbox) {
-                return 'CHECKBOX';
-            }
-
-            const hasRadio =
-                host.querySelector(
-                    'input[type="radio"],[role="radio"]'
-                );
-
-            if (hasRadio) {
-                return 'RADIO';
-            }
-
-            const hasSearch =
-                host.querySelector(
-                    'input[type="search"],[role="searchbox"],[role="combobox"],input[aria-autocomplete]'
-                );
-
-            if (hasSearch) {
-                return 'AUTOCOMPLETE';
-            }
-
-            const hasText =
-                host.querySelector(
-                    'input,textarea,[role="textbox"]'
-                );
-
-            if (hasText) {
-                return 'TEXT';
-            }
-        }
-
-        return 'CUSTOM';
+        return 'TEXT';
     }
-
 
 
     /* =========================================================
        IDENTIFICATION
        ========================================================= */
 
-    function candidates(
-        control) {
+    function candidates(control) {
 
         const result = {};
 
-        const element =
-            control.nativeElement;
+        const label =
+            labelFor(control);
 
-        const host =
-            control.customHost;
-
-        if (control.label) {
-            result.LABEL =
-                control.label;
+        if (label) {
+            result.LABEL = label;
         }
 
-        const ariaLabel =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('aria-label') ||
 
-                host
-                    ?.getAttribute
-                    ?.('aria-label')
+        const ariaLabel =
+            attributeFromControl(
+                control,
+                'aria-label'
             );
 
         if (ariaLabel) {
-
-            result.ARIA_LABEL =
-                ariaLabel;
+            result.ARIA_LABEL = ariaLabel;
         }
 
-        const accessible =
-            clean(
-                associatedLabel(
-                    element
-                ) ||
 
-                ariaLabel ||
+        const fc =
+            formControlName(control);
 
-                labelledBy(
-                    element
-                )
-            );
-
-        if (accessible) {
-
-            result.ACCESSIBLE_NAME =
-                accessible;
+        if (fc) {
+            result.FORM_CONTROL_NAME = fc;
         }
 
-        if (control.controlName) {
 
-            /*
-             * Determine whether it came from formControlName
-             * or custom controlName.
-             */
-            const formControl =
-                clean(
-                    element
-                        ?.getAttribute
-                        ?.('formControlName') ||
+        const cn =
+            customControlName(control);
 
-                    element
-                        ?.getAttribute
-                        ?.('formcontrolname') ||
-
-                    host
-                        ?.getAttribute
-                        ?.('formControlName') ||
-
-                    host
-                        ?.getAttribute
-                        ?.('formcontrolname')
-                );
-
-            if (formControl) {
-
-                result.FORM_CONTROL_NAME =
-                    formControl;
-
-            } else {
-
-                result.CONTROL_NAME =
-                    control.controlName;
-            }
+        if (cn) {
+            result.CONTROL_NAME = cn;
         }
+
 
         const name =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('name') ||
-
-                host
-                    ?.getAttribute
-                    ?.('name')
+            attributeFromControl(
+                control,
+                'name'
             );
 
         if (name) {
-
-            result.NAME =
-                name;
+            result.NAME = name;
         }
+
 
         const id =
             clean(
-                element?.id ||
-                host?.id
+                control?.nativeElement?.id ||
+                control?.host?.id
             );
 
         if (id) {
-
-            result.ID =
-                id;
+            result.ID = id;
         }
 
-        const role =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('role') ||
 
-                host
-                    ?.getAttribute
-                    ?.('role')
+        const role =
+            attributeFromControl(
+                control,
+                'role'
             );
 
         if (role) {
-
-            result.ROLE =
-                role;
+            result.ROLE = role;
         }
 
-        const placeholder =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('placeholder')
-            );
 
         /*
          * Placeholder is metadata only.
-         * It never creates a second event.
+         *
+         * It must never create a separate event.
          */
-        if (placeholder) {
+        const placeholder =
+            attributeFromControl(
+                control,
+                'placeholder'
+            );
 
-            result.PLACEHOLDER =
-                placeholder;
+        if (placeholder) {
+            result.PLACEHOLDER = placeholder;
         }
 
+
         const testId =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('data-testid') ||
-
-                element
-                    ?.getAttribute
-                    ?.('data-test') ||
-
-                host
-                    ?.getAttribute
-                    ?.('data-testid') ||
-
-                host
-                    ?.getAttribute
-                    ?.('data-test')
+            attributeFromControl(
+                control,
+                'data-testid',
+                'data-test',
+                'data-cy'
             );
 
         if (testId) {
-
-            result.DATA_TESTID =
-                testId;
+            result.DATA_TESTID = testId;
         }
 
-        if (host) {
+
+        if (control?.host) {
 
             const component =
                 clean(
-                    host.tagName
+                    control.host
+                        .tagName
                 )?.toLowerCase();
 
             if (component) {
-
-                result.COMPONENT =
-                    component;
+                result.COMPONENT = component;
             }
         }
+
 
         return result;
     }
 
 
-
-    function semanticInputName(
-        control) {
+    function inputName(control) {
 
         const c =
-            candidates(
-                control
-            );
+            candidates(control);
 
         /*
-         * Label is highest priority.
+         * User requirement:
+         *
+         * label / logical input identity is primary.
          */
         return clean(
             c.LABEL ||
             c.ARIA_LABEL ||
-            c.ACCESSIBLE_NAME ||
             c.FORM_CONTROL_NAME ||
             c.CONTROL_NAME ||
             c.NAME ||
             c.ID ||
             c.PLACEHOLDER ||
-            c.COMPONENT ||
-            'unnamed'
-        );
+            c.COMPONENT
+        ) || 'unnamed';
     }
 
 
-
-    function identifyBy(
-        control) {
+    function identifyBy(control) {
 
         const c =
             candidates(control);
@@ -1576,7 +1378,6 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         const priority = [
             'LABEL',
             'ARIA_LABEL',
-            'ACCESSIBLE_NAME',
             'FORM_CONTROL_NAME',
             'CONTROL_NAME',
             'NAME',
@@ -1609,9 +1410,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 'INPUT',
 
             preferredValue:
-                semanticInputName(
-                    control
-                ),
+                inputName(control),
 
             candidates:
                 c
@@ -1619,40 +1418,45 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
 
-
     /* =========================================================
-       VALUE
+       VALUE READING
        ========================================================= */
 
-    function currentValue(
-        control) {
-
-        const element =
-            control.nativeElement;
+    function readElementValue(element) {
 
         if (!element) {
             return null;
         }
 
-        if (
-            element
-                .isContentEditable
-        ) {
 
-            return clean(
-                element.innerText
-            );
+        if (element.isContentEditable) {
+
+            const text =
+                clean(
+                    element.innerText
+                );
+
+            if (text) {
+                return text;
+            }
         }
+
 
         if (
             'value' in element &&
             element.value != null
         ) {
 
-            return clean(
-                element.value
-            );
+            const value =
+                clean(
+                    element.value
+                );
+
+            if (value) {
+                return value;
+            }
         }
+
 
         return clean(
             element
@@ -1666,99 +1470,286 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
 
+    function readValue(control) {
 
-    function checkedState(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element) {
+        if (!control) {
             return null;
         }
 
-        if ('checked' in element) {
+        const elements = [];
 
-            return !!element.checked;
+        /*
+         * Prefer actual event/native input first.
+         */
+        if (control.nativeElement) {
+            elements.push(
+                control.nativeElement
+            );
         }
 
-        const aria =
-            clean(
-                element
-                    .getAttribute
-                    ?.('aria-checked')
+
+        /*
+         * Then inspect all internal editable controls.
+         *
+         * Important for custom components.
+         */
+        control.root
+            ?.querySelectorAll
+            ?.(`
+                input:not([type="hidden"]),
+                textarea,
+                select,
+                [contenteditable="true"],
+                [role="textbox"],
+                [role="searchbox"],
+                [role="combobox"]
+            `)
+            .forEach(
+                element => {
+
+                    if (!elements.includes(element)) {
+
+                        elements.push(element);
+                    }
+                }
             );
 
-        if (aria === 'true') {
-            return true;
+
+        for (const element of elements) {
+
+            const value =
+                readElementValue(
+                    element
+                );
+
+            if (value) {
+                return value;
+            }
         }
 
-        if (aria === 'false') {
-            return false;
+
+        /*
+         * Final fallback for custom selected-value display.
+         */
+        const selected =
+            control.root
+                ?.querySelector
+                ?.(`
+                    [aria-selected="true"],
+                    [data-selected="true"],
+                    .selected-value,
+                    .selection-value,
+                    [class*="selected-value"],
+                    [class*="selection-value"]
+                `);
+
+        return clean(
+            selected?.innerText ||
+            selected?.textContent
+        );
+    }
+
+
+    /* =========================================================
+       DATE VALUE READING
+       ========================================================= */
+
+    function readDateValue(control) {
+
+        if (!control) {
+            return null;
+        }
+
+        const elements = [];
+
+
+        if (control.nativeElement) {
+            elements.push(
+                control.nativeElement
+            );
+        }
+
+
+        control.root
+            ?.querySelectorAll
+            ?.(`
+                input:not([type="hidden"]),
+                textarea,
+                [role="textbox"],
+                [contenteditable="true"]
+            `)
+            .forEach(
+                element => {
+
+                    if (!elements.includes(element)) {
+
+                        elements.push(element);
+                    }
+                }
+            );
+
+
+        for (const element of elements) {
+
+            const value =
+                readElementValue(
+                    element
+                );
+
+            if (value) {
+                return value;
+            }
         }
 
         return null;
     }
 
 
+    function isDateControl(control) {
 
-    /* =========================================================
-       DIALOG CONTEXT
-       ========================================================= */
-
-    function dialogContext(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        const dialog =
-            element
-                ?.closest
-                ?.(`
-                    [role="dialog"],
-                    [aria-modal="true"]
-                `);
-
-        if (!dialog) {
-            return null;
+        if (!control) {
+            return false;
         }
 
-        return {
-            type:
-                'DIALOG',
 
-            name:
-                clean(
-                    dialog
-                        .getAttribute(
-                            'aria-label'
-                        ) ||
+        if (
+            detectInputType(control) ===
+            'DATE'
+        ) {
 
-                    labelledBy(
-                        dialog
-                    ) ||
+            return true;
+        }
 
-                    dialog
-                        .querySelector(
-                            'h1,h2,h3,[role="heading"]'
-                        )
-                        ?.textContent
-                ) ||
-                'dialog'
-        };
+
+        return !!control.root
+            ?.querySelector
+            ?.(`
+                input[type="date"],
+                input[type="datetime-local"],
+                input[type="month"],
+                input[type="week"],
+                input[type="time"]
+            `);
     }
 
 
-
     /* =========================================================
-       EVENT EMIT
+       STATE
        ========================================================= */
 
-    function emit(
-        event) {
+    function getState(control) {
 
-        const full = {
+        if (!control?.root) {
+            return null;
+        }
+
+        let state =
+            controlStates.get(
+                control.root
+            );
+
+        if (!state) {
+
+            state = {
+
+                control,
+
+                searchText:
+                    null,
+
+                selectedText:
+                    null,
+
+                selectedValue:
+                    null,
+
+                finalValue:
+                    null,
+
+                previousValue:
+                    readValue(control),
+
+                dirty:
+                    false,
+
+                waitingForSelection:
+                    false
+            };
+
+            controlStates.set(
+                control.root,
+                state
+            );
+        }
+
+
+        /*
+         * Keep latest native element / host reference.
+         */
+        state.control =
+            control;
+
+        return state;
+    }
+
+
+    /* =========================================================
+       FINAL EVENT ONLY
+       ========================================================= */
+
+    function emitFinal(
+        state,
+        actionType,
+        inputType
+    ) {
+
+        if (!state?.control) {
+            return;
+        }
+
+        const control =
+            state.control;
+
+
+        const value = {
+
+            /*
+             * raw = completed entered/selected value.
+             */
+            raw:
+                state.finalValue,
+
+            searchText:
+                state.searchText,
+
+            selectedValue:
+                state.selectedValue,
+
+            selectedText:
+                state.selectedText
+        };
+
+
+        /*
+         * Remove empty properties.
+         */
+        Object
+            .keys(value)
+            .forEach(
+                key => {
+
+                    if (
+                        value[key] == null ||
+                        value[key] === ''
+                    ) {
+
+                        delete value[key];
+                    }
+                }
+            );
+
+
+        const event = {
 
             timestamp:
                 Date.now(),
@@ -1766,299 +1757,335 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
             stage:
                 currentStage,
 
-            url:
-                location.href,
-
-            ...event
-        };
-
-        window
-            .__angularRecorderEvents
-            .push(full);
-
-        console.log(
-            PREFIX +
-            JSON.stringify(full)
-        );
-    }
-
-
-
-    function baseEvent(
-        control,
-        actionType,
-        typeOverride) {
-
-        return {
-
             actionType,
 
             inputType:
-                typeOverride ||
-                detectInputType(
-                    control
-                ),
+                inputType ||
+                detectInputType(control),
 
             input:
-                semanticInputName(
-                    control
-                ),
+                inputName(control),
 
             identifyBy:
-                identifyBy(
-                    control
-                ),
+                identifyBy(control),
 
-            context:
-                dialogContext(
-                    control
-                )
+            value,
+
+            url:
+                location.href
         };
+
+
+        window
+            .__angularRecorderEvents
+            .push(event);
+
+
+        console.log(
+            PREFIX +
+            JSON.stringify(event)
+        );
+
+
+        controlStates.delete(
+            control.root
+        );
+
+
+        if (
+            activeLogicalControl ===
+            control.root
+        ) {
+
+            activeLogicalControl =
+                null;
+        }
     }
 
 
-
     /* =========================================================
-       INPUT NORMALIZATION
+       DATE - WAIT UNTIL ACTUAL INPUT VALUE CHANGES
        ========================================================= */
 
-    function editableAction(
-        control) {
+    function waitForFinalDateValue(
+        state,
+        attempt = 0
+    ) {
 
-        const type =
-            detectInputType(
-                control
-            );
-
-        if (
-            type ===
-            'AUTOCOMPLETE' ||
-            type ===
-            'SEARCH'
-        ) {
-
-            return 'SEARCH';
-        }
-
-        if (
-            type ===
-            'DATE'
-        ) {
-
-            return 'DATE_INPUT';
-        }
-
-        return 'INPUT';
-    }
-
-
-
-    function scheduleEditable(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element) {
+        if (!state) {
             return;
         }
 
-        const oldTimer =
-            timers.get(
-                element
-            );
-
-        if (oldTimer) {
-
-            clearTimeout(
-                oldTimer
-            );
-        }
-
-        pending.set(
-            element,
-            {
-                control,
-                actionType:
-                    editableAction(
-                        control
-                    )
-            }
-        );
 
         /*
-         * Capture final typed value,
-         * not one event for every character.
+         * Up to roughly 2.5 seconds.
          */
-        const timer =
-            setTimeout(
-                () => {
+        if (attempt > 25) {
 
-                    const item =
-                        pending.get(
-                            element
-                        );
+            /*
+             * Do not fall back to clicked calendar cell.
+             *
+             * If there is an existing actual value,
+             * use only that.
+             */
+            const actual =
+                readDateValue(
+                    state.control
+                );
 
-                    if (!item) {
-                        return;
-                    }
+            if (actual) {
 
-                    emit({
-                        ...baseEvent(
-                            item.control,
-                            item.actionType
-                        ),
+                state.finalValue =
+                    actual;
 
-                        value: {
-                            raw:
-                                currentValue(
-                                    item.control
-                                )
-                        }
-                    });
+                state.selectedText =
+                    null;
 
-                    pending.delete(
-                        element
-                    );
+                state.selectedValue =
+                    null;
 
-                    timers.delete(
-                        element
-                    );
-
-                },
-                500
-            );
-
-        timers.set(
-            element,
-            timer
-        );
-    }
-
-
-
-    function flushEditable(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element ||
-            !pending.has(
-                element
-            )) {
+                emitFinal(
+                    state,
+                    'DATE_INPUT',
+                    'DATE'
+                );
+            }
 
             return;
         }
 
-        const oldTimer =
-            timers.get(
-                element
+
+        const actual =
+            readDateValue(
+                state.control
             );
 
-        if (oldTimer) {
 
-            clearTimeout(
-                oldTimer
+        /*
+         * The important rule:
+         *
+         * clicked calendar text could be "6".
+         *
+         * We only emit after the actual input becomes
+         * "09/06/2026" or whatever format the application uses.
+         */
+        if (
+            actual &&
+            actual !== state.previousValue
+        ) {
+
+            state.finalValue =
+                actual;
+
+            /*
+             * Calendar cell is not the final value.
+             */
+            state.selectedText =
+                null;
+
+            state.selectedValue =
+                null;
+
+            emitFinal(
+                state,
+                'DATE_INPUT',
+                'DATE'
             );
+
+            return;
         }
 
-        const item =
-            pending.get(
-                element
-            );
 
-        emit({
-            ...baseEvent(
-                item.control,
-                item.actionType
-            ),
-
-            value: {
-                raw:
-                    currentValue(
-                        item.control
-                    )
-            }
-        });
-
-        pending.delete(
-            element
-        );
-
-        timers.delete(
-            element
+        setTimeout(
+            () =>
+                waitForFinalDateValue(
+                    state,
+                    attempt + 1
+                ),
+            100
         );
     }
-
 
 
     /* =========================================================
-       INPUT EVENT
+       FIND ACTIVE LOGICAL STATE FOR OVERLAY OPTION
+       ========================================================= */
+
+    function activeState() {
+
+        if (!activeLogicalControl) {
+            return null;
+        }
+
+        return controlStates.get(
+            activeLogicalControl
+        ) || null;
+    }
+
+
+    /* =========================================================
+       FOCUS
+       ========================================================= */
+
+    document.addEventListener(
+        'focusin',
+        event => {
+
+            const element =
+                eventElement(event);
+
+            const control =
+                resolveLogicalControl(
+                    element
+                );
+
+            if (!control) {
+                return;
+            }
+
+
+            activeLogicalControl =
+                control.root;
+
+
+            getState(control);
+
+            /*
+             * NO EVENT.
+             *
+             * Opening/focusing alone is not user input.
+             */
+        },
+        true
+    );
+
+
+    /* =========================================================
+       INPUT
        ========================================================= */
 
     document.addEventListener(
         'input',
         event => {
 
+            const element =
+                eventElement(event);
+
             const control =
-                resolveControl(
-                    event
+                resolveLogicalControl(
+                    element
                 );
+
+            if (!control) {
+                return;
+            }
+
+
+            activeLogicalControl =
+                control.root;
+
+
+            const state =
+                getState(control);
+
+            if (!state) {
+                return;
+            }
+
 
             const type =
                 detectInputType(
                     control
                 );
 
+
+            const value =
+                clean(
+                    element?.value ??
+                    readValue(control)
+                );
+
+
+            /*
+             * SEARCH:
+             *
+             * store search value only.
+             * Do NOT emit yet.
+             */
             if (
                 type ===
-                'CHECKBOX' ||
+                'AUTOCOMPLETE' ||
 
-                type ===
-                'RADIO' ||
+                element
+                    ?.getAttribute
+                    ?.('role') ===
+                'searchbox' ||
 
-                type ===
-                'TOGGLE' ||
-
-                type ===
-                'FILE' ||
-
-                type ===
-                'SELECT'
+                element
+                    ?.getAttribute
+                    ?.('aria-autocomplete')
             ) {
+
+                state.searchText =
+                    value;
+
+                state.dirty =
+                    true;
+
+                state.waitingForSelection =
+                    true;
 
                 return;
             }
 
-            scheduleEditable(
-                control
-            );
+
+            /*
+             * NORMAL INPUT:
+             *
+             * Only keep latest entered value.
+             */
+            state.finalValue =
+                value;
+
+            state.dirty =
+                true;
         },
         true
     );
 
 
-
     /* =========================================================
-       CHANGE EVENT
+       CHANGE
        ========================================================= */
 
     document.addEventListener(
         'change',
         event => {
 
+            const element =
+                eventElement(event);
+
             const control =
-                resolveControl(
-                    event
+                resolveLogicalControl(
+                    element
                 );
 
-            flushEditable(
-                control
-            );
+            if (!control) {
+                return;
+            }
 
-            const element =
-                control.nativeElement;
+
+            activeLogicalControl =
+                control.root;
+
+
+            const state =
+                getState(control);
+
+            if (!state) {
+                return;
+            }
+
 
             const type =
                 detectInputType(
@@ -2066,370 +2093,539 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                 );
 
 
+            /* ---------------- FILE ---------------- */
 
             if (type === 'FILE') {
 
                 const files =
-                    element.files
+                    element?.files
                         ? Array.from(
                             element.files
                         )
                         : [];
 
-                emit({
-                    ...baseEvent(
-                        control,
-                        'FILE_UPLOAD',
-                        'FILE'
-                    ),
 
-                    value: {
-                        fileName:
-                            files.length
-                                ? files
-                                    .map(
-                                        f =>
-                                            f.name
-                                    )
-                                    .join(', ')
-                                : null
-                    }
-                });
+                state.finalValue =
+                    files
+                        .map(
+                            file =>
+                                file.name
+                        )
+                        .join(', ');
+
+
+                state.selectedValue =
+                    null;
+
+                state.selectedText =
+                    null;
+
+
+                emitFinal(
+                    state,
+                    'FILE_UPLOAD',
+                    'FILE'
+                );
 
                 return;
             }
 
 
+            /* ---------------- CHECKBOX ---------------- */
 
             if (
-                type ===
-                'CHECKBOX' ||
-                type ===
-                'TOGGLE'
+                type === 'CHECKBOX' ||
+                type === 'TOGGLE'
             ) {
 
                 const checked =
-                    checkedState(
-                        control
-                    );
+                    'checked' in element
+                        ? !!element.checked
+                        : (
+                            element
+                                ?.getAttribute
+                                ?.('aria-checked') ===
+                            'true'
+                        );
 
-                emit({
-                    ...baseEvent(
-                        control,
-                        checked
-                            ? 'CHECK'
-                            : 'UNCHECK',
-                        type
-                    ),
 
-                    value: {
-                        raw:
-                            currentValue(
-                                control
-                            ),
+                state.finalValue =
+                    String(checked);
 
-                        checked
-                    }
-                });
+
+                emitFinal(
+                    state,
+                    checked
+                        ? 'CHECK'
+                        : 'UNCHECK',
+                    type
+                );
 
                 return;
             }
 
 
+            /* ---------------- RADIO ---------------- */
 
             if (type === 'RADIO') {
 
                 const checked =
-                    checkedState(
-                        control
-                    );
+                    'checked' in element
+                        ? !!element.checked
+                        : true;
 
-                if (checked === false) {
+
+                if (!checked) {
                     return;
                 }
 
-                emit({
-                    ...baseEvent(
-                        control,
-                        'RADIO',
-                        'RADIO'
-                    ),
 
-                    value: {
-                        raw:
-                            currentValue(
-                                control
-                            ),
+                state.finalValue =
+                    clean(
+                        element?.value
+                    ) ||
+                    shortText(element);
 
-                        selectedValue:
-                            currentValue(
-                                control
-                            ),
 
-                        selectedText:
-                            semanticInputName(
-                                control
-                            ),
+                state.selectedValue =
+                    state.finalValue;
 
-                        checked:
-                            true
-                    }
-                });
+
+                state.selectedText =
+                    shortText(element);
+
+
+                emitFinal(
+                    state,
+                    'RADIO',
+                    'RADIO'
+                );
 
                 return;
             }
 
 
+            /* ---------------- NATIVE SELECT ---------------- */
 
             if (
-                element &&
                 element
-                    .tagName
+                    ?.tagName
                     ?.toLowerCase() ===
                 'select'
             ) {
 
                 const option =
                     element
-                        .selectedOptions
+                        ?.selectedOptions
                         ?.[0];
 
-                emit({
-                    ...baseEvent(
-                        control,
-                        'SELECT',
-                        'SELECT'
-                    ),
 
-                    value: {
-                        raw:
-                            clean(
-                                element.value
-                            ),
+                state.selectedValue =
+                    clean(
+                        element.value
+                    );
 
-                        selectedValue:
-                            clean(
-                                element.value
-                            ),
 
-                        selectedText:
-                            clean(
-                                option
-                                    ?.textContent
-                            )
-                    }
-                });
+                state.selectedText =
+                    clean(
+                        option?.textContent
+                    );
+
+
+                state.finalValue =
+                    state.selectedValue ||
+                    state.selectedText;
+
+
+                emitFinal(
+                    state,
+                    'SELECT',
+                    'SELECT'
+                );
 
                 return;
             }
 
 
+            /* ---------------- DATE ---------------- */
 
-            emit({
-                ...baseEvent(
-                    control,
-                    editableAction(
-                        control
-                    )
-                ),
+            if (
+                type === 'DATE' ||
+                isDateControl(control)
+            ) {
 
-                value: {
-                    raw:
-                        currentValue(
-                            control
-                        )
+                /*
+                 * Directly typed date:
+                 *
+                 * the actual input value is authoritative.
+                 */
+                const actual =
+                    readDateValue(control);
+
+
+                if (actual) {
+
+                    state.finalValue =
+                        actual;
+
+                    state.dirty =
+                        true;
                 }
-            });
+
+                return;
+            }
+
+
+            /* ---------------- NORMAL INPUT ---------------- */
+
+            const actual =
+                readValue(control);
+
+
+            if (actual) {
+
+                state.finalValue =
+                    actual;
+            }
+
+
+            state.dirty =
+                true;
         },
         true
     );
 
 
-
     /* =========================================================
-       BLUR
-       ========================================================= */
-
-    document.addEventListener(
-        'focusout',
-        event => {
-
-            const control =
-                resolveControl(
-                    event
-                );
-
-            flushEditable(
-                control
-            );
-        },
-        true
-    );
-
-
-
-    /* =========================================================
-       CLICK / OPTION / POPUP
+       CLICK
        ========================================================= */
 
     document.addEventListener(
         'click',
         event => {
 
-            const control =
-                resolveControl(
-                    event
-                );
-
             const element =
-                control.nativeElement;
+                eventElement(event);
 
             if (!element) {
                 return;
             }
 
-            const type =
-                detectInputType(
-                    control
-                );
 
             const role =
                 clean(
                     element
-                        .getAttribute
+                        ?.getAttribute
                         ?.('role')
-                );
-
-
-
-            /*
-             * Input focus/placeholder click
-             * is NOT a separate event.
-             */
-            if (
-                type === 'TEXT' ||
-                type === 'PASSWORD' ||
-                type === 'EMAIL' ||
-                type === 'NUMBER' ||
-                type === 'TEL' ||
-                type === 'URL' ||
-                type === 'SEARCH' ||
-                type === 'TEXTAREA' ||
-                type === 'AUTOCOMPLETE'
-            ) {
-
-                return;
-            }
-
+                )?.toLowerCase();
 
 
             /*
-             * Change event will capture these.
-             */
-            if (
-                type === 'CHECKBOX' ||
-                type === 'RADIO' ||
-                type === 'TOGGLE'
-            ) {
-
-                return;
-            }
-
-
-
-            /*
-             * Generic overlay/list option.
+             * ==================================================
+             * OVERLAY OPTION
+             * ==================================================
+             *
+             * It can be outside the form group.
              */
             if (
                 role === 'option' ||
-                type === 'OPTION'
+                element
+                    ?.getAttribute
+                    ?.('aria-selected') != null
             ) {
 
+                const state =
+                    activeState();
+
+                if (!state) {
+                    return;
+                }
+
+
+                /*
+                 * DATE CONTROL SPECIAL HANDLING
+                 *
+                 * Never save clicked date-cell text.
+                 *
+                 * Example clicked:
+                 *
+                 * "6"
+                 *
+                 * Expected final:
+                 *
+                 * "09/06/2026"
+                 */
+                if (
+                    isDateControl(
+                        state.control
+                    )
+                ) {
+
+                    waitForFinalDateValue(
+                        state
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * SEARCH / CUSTOM SELECT
+                 */
                 const selectedText =
                     shortText(
                         element
                     );
 
-                emit({
-                    ...baseEvent(
-                        control,
-                        'SELECT',
-                        'OPTION'
-                    ),
 
-                    value: {
+                state.selectedText =
+                    selectedText;
 
-                        raw:
-                            selectedText,
 
-                        selectedValue:
-                            clean(
-                                element
-                                    .getAttribute
-                                    ?.('value')
-                            ) ||
-                            selectedText,
+                state.selectedValue =
+                    clean(
+                        element
+                            ?.getAttribute
+                            ?.('value')
+                    ) ||
+                    clean(
+                        element
+                            ?.getAttribute
+                            ?.('data-value')
+                    ) ||
+                    selectedText;
 
-                        selectedText:
-                            selectedText
+
+                /*
+                 * Angular/custom component may update its
+                 * visible value after the click handler completes.
+                 */
+                setTimeout(
+                    () => {
+
+                        const actual =
+                            readValue(
+                                state.control
+                            );
+
+
+                        /*
+                         * Prefer selected logical value.
+                         *
+                         * Do not use search box text as final value.
+                         */
+                        state.finalValue =
+                            state.selectedValue ||
+                            actual ||
+                            state.selectedText;
+
+
+                        emitFinal(
+                            state,
+                            state.searchText
+                                ? 'SEARCH_AND_SELECT'
+                                : 'SELECT',
+
+                            state.searchText
+                                ? 'AUTOCOMPLETE'
+                                : detectInputType(
+                                    state.control
+                                )
+                        );
+
                     },
-
-                    wait: {
-                        type:
-                            'OPTION_VISIBLE',
-
-                        target:
-                            selectedText,
-
-                        role:
-                            'option'
-                    }
-                });
+                    100
+                );
 
                 return;
             }
 
 
+            /*
+             * ==================================================
+             * NORMAL CONTROL CLICK
+             * ==================================================
+             */
 
-            const hasPopup =
-                clean(
+            const control =
+                resolveLogicalControl(
                     element
-                        .getAttribute
-                        ?.('aria-haspopup')
                 );
 
-            const controls =
-                clean(
-                    element
-                        .getAttribute
-                        ?.('aria-controls')
-                );
+            if (!control) {
+                return;
+            }
 
 
+            activeLogicalControl =
+                control.root;
 
-            emit({
-                ...baseEvent(
-                    control,
-                    hasPopup ||
-                    controls
-                        ? 'OPEN_POPUP'
-                        : 'CLICK'
-                ),
 
-                value: {
-                    raw:
-                        shortText(
-                            element
-                        ) ||
-                        semanticInputName(
-                            control
-                        )
-                }
-            });
+            const state =
+                getState(control);
+
+            if (!state) {
+                return;
+            }
+
+
+            /*
+             * Store pre-interaction value for date picker.
+             */
+            if (
+                isDateControl(control)
+            ) {
+
+                state.previousValue =
+                    readDateValue(
+                        control
+                    );
+            }
+
+
+            /*
+             * NO EVENT HERE.
+             *
+             * This intentionally suppresses:
+             *
+             * CLICK dropdown
+             * CLICK placeholder
+             * OPEN datepicker
+             * OPEN autocomplete
+             * focus input
+             *
+             * We wait for the completed value.
+             */
         },
         true
     );
 
+
+    /* =========================================================
+       FOCUS OUT
+       ========================================================= */
+
+    document.addEventListener(
+        'focusout',
+        event => {
+
+            const element =
+                eventElement(event);
+
+            const control =
+                resolveLogicalControl(
+                    element
+                );
+
+            if (!control) {
+                return;
+            }
+
+
+            const state =
+                controlStates.get(
+                    control.root
+                );
+
+            if (!state ||
+                !state.dirty) {
+
+                return;
+            }
+
+
+            /*
+             * Search/autocomplete:
+             *
+             * do NOT emit when the internal search box loses focus.
+             * User may be clicking the API result next.
+             */
+            if (
+                state.searchText &&
+                state.waitingForSelection
+            ) {
+
+                return;
+            }
+
+
+            /*
+             * Date picker:
+             *
+             * wait for actual final date.
+             */
+            if (
+                isDateControl(
+                    state.control
+                )
+            ) {
+
+                setTimeout(
+                    () => {
+
+                        const actual =
+                            readDateValue(
+                                state.control
+                            );
+
+
+                        if (actual) {
+
+                            state.finalValue =
+                                actual;
+
+
+                            emitFinal(
+                                state,
+                                'DATE_INPUT',
+                                'DATE'
+                            );
+                        }
+
+                    },
+                    100
+                );
+
+                return;
+            }
+
+
+            /*
+             * Normal input:
+             *
+             * read the final entered value after Angular
+             * finishes updating the field.
+             */
+            setTimeout(
+                () => {
+
+                    const actual =
+                        readValue(
+                            state.control
+                        );
+
+
+                    if (actual != null) {
+
+                        state.finalValue =
+                            actual;
+                    }
+
+
+                    emitFinal(
+                        state,
+                        'INPUT',
+                        detectInputType(
+                            state.control
+                        )
+                    );
+
+                },
+                50
+            );
+        },
+        true
+    );
 
 
     /* =========================================================
@@ -2440,47 +2636,25 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
         'keydown',
         event => {
 
-            if (
-                ![
-                    'Enter',
-                    'Tab',
-                    'Escape'
-                ]
-                .includes(
-                    event.key
-                )
-            ) {
-
-                return;
-            }
-
-            const control =
-                resolveControl(
-                    event
-                );
-
-            emit({
-                ...baseEvent(
-                    control,
-                    'KEY'
-                ),
-
-                value: {
-                    raw:
-                        event.key
-                }
-            });
+            /*
+             * We intentionally do not record Tab/Enter
+             * as separate events for ordinary input completion.
+             *
+             * They are normally only interaction mechanics.
+             *
+             * Add KEY events separately only if your application
+             * specifically needs keyboard behavior later.
+             */
         },
         true
     );
 
 
-
     /* =========================================================
-       ANGULAR SPA STAGE TRACKING
+       ANGULAR SPA STAGE
        ========================================================= */
 
-    function checkStageChange() {
+    function detectStageChange() {
 
         setTimeout(
             () => {
@@ -2502,10 +2676,10 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
 
-
     const originalPushState =
         history.pushState
             .bind(history);
+
 
     history.pushState =
         function(...args) {
@@ -2515,16 +2689,16 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     ...args
                 );
 
-            checkStageChange();
+            detectStageChange();
 
             return result;
         };
 
 
-
     const originalReplaceState =
         history.replaceState
             .bind(history);
+
 
     history.replaceState =
         function(...args) {
@@ -2534,43 +2708,16 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                     ...args
                 );
 
-            checkStageChange();
+            detectStageChange();
 
             return result;
         };
 
 
-
     window.addEventListener(
         'popstate',
-        checkStageChange,
+        detectStageChange,
         true
-    );
-
-
-
-    /* =========================================================
-       DYNAMIC ANGULAR / OVERLAY DOM
-       ========================================================= */
-
-    const observer =
-        new MutationObserver(
-            () => {
-
-                lastMutationAt =
-                    Date.now();
-            }
-        );
-
-    observer.observe(
-        document.documentElement,
-        {
-            childList:
-                true,
-
-            subtree:
-                true
-        }
     );
 
 })();

@@ -462,1453 +462,1806 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     }
 
     private static final String RECORDING_SCRIPT = """
-(() => {
-
-    if (window.__angularRecorderInstalled) {
-        return;
-    }
-
-    window.__angularRecorderInstalled = true;
-
-    window.__angularRecorderEvents = [];
-
-    const PREFIX =
-        '__ANGULAR_RECORDER_EVENT__';
-
-    const timers =
-        new WeakMap();
-
-    const pending =
-        new WeakMap();
-
-    let currentStage = 1;
-
-    let lastUrl =
-        location.href;
-
-    let lastMutationAt =
-        Date.now();
-
-
-
-    /* =========================================================
-       BASIC HELPERS
-       ========================================================= */
-
-    function clean(value) {
-
-        if (value == null) {
-            return null;
-        }
-
-        const result =
-            String(value)
-                .replace(/\\s+/g, ' ')
-                .trim();
-
-        return result || null;
-    }
-
-
-
-    function shortText(element) {
-
-        if (!element) {
-            return null;
-        }
-
-        const text =
-            clean(
-                element.innerText ||
-                element.textContent
-            );
-
-        if (!text ||
-            text.length > 180) {
-
-            return null;
-        }
-
-        return text;
-    }
-
-
-
-    function eventElement(event) {
-
-        const path =
-            event &&
-            event.composedPath
-                ? event.composedPath()
-                : [];
-
-        for (const item of path) {
-
-            if (item &&
-                item.nodeType ===
-                Node.ELEMENT_NODE) {
-
-                return item;
-            }
-        }
-
-        return event
-            ? event.target
-            : null;
-    }
-
-
-
-    function eventPath(event) {
-
-        if (event &&
-            event.composedPath) {
-
-            return event
-                .composedPath()
-                .filter(
-                    x =>
-                        x &&
-                        x.nodeType ===
-                        Node.ELEMENT_NODE
-                );
-        }
-
-        return [];
-    }
-
-
-
-    function ancestors(element) {
-
-        const result = [];
-
-        let current =
-            element;
-
-        while (current &&
-               current !==
-               document.documentElement) {
-
-            result.push(current);
-
-            current =
-                current.parentElement;
-        }
-
-        return result;
-    }
-
-
-
-    /* =========================================================
-       FIND ACTUAL CONTROL
-       ========================================================= */
-
-    function isNativeOrSemanticControl(element) {
-
-        if (!element ||
-            !element.matches) {
-
-            return false;
-        }
-
-        return element.matches(`
-            input,
-            textarea,
-            select,
-            button,
-            a,
-            [contenteditable="true"],
-            [role="textbox"],
-            [role="searchbox"],
-            [role="combobox"],
-            [role="checkbox"],
-            [role="radio"],
-            [role="switch"],
-            [role="button"],
-            [role="link"],
-            [role="option"],
-            [role="menuitem"],
-            [role="slider"],
-            [role="spinbutton"]
-        `);
-    }
-
-
-
-    function closestMeaningful(
-        event) {
-
-        const path =
-            eventPath(event);
-
-        /*
-         * First prefer actual native/semantic input.
-         */
-        for (const node of path) {
-
-            if (isNativeOrSemanticControl(
-                node)) {
-
-                return node;
-            }
-        }
-
-        /*
-         * Then custom Angular component.
-         */
-        for (const node of path) {
-
-            if (isLogicalAngularHost(
-                node)) {
-
-                return node;
-            }
-        }
-
-        return eventElement(event);
-    }
-
-
-
-    /* =========================================================
-       GENERIC ANGULAR CUSTOM CONTROL DETECTION
-       ========================================================= */
-
-    function isLogicalAngularHost(
-        element) {
-
-        if (!element ||
-            !element.getAttribute) {
-
-            return false;
-        }
-
-        const tag =
-            (
-                element.tagName ||
-                ''
-            ).toLowerCase();
-
-        /*
-         * Generic Angular/custom component.
-         *
-         * Example:
-         *
-         * mt-dropdown
-         * dcrm-dcrm-datepicker
-         * abc-customer-selector
-         *
-         * No component name is hardcoded.
-         */
-        if (tag.includes('-')) {
-            return true;
-        }
-
-        if (
-            element.hasAttribute(
-                'formControlName'
-            ) ||
-            element.hasAttribute(
-                'formcontrolname'
-            ) ||
-            element.hasAttribute(
-                'controlName'
-            ) ||
-            element.hasAttribute(
-                'controlname'
-            ) ||
-            element.hasAttribute(
-                'ngModel'
-            ) ||
-            element.hasAttribute(
-                'ngmodel'
-            )
-        ) {
-
-            return true;
-        }
-
-        return false;
-    }
-
-
-
-    function findLogicalAngularHost(
-        nativeElement,
-        event) {
-
-        const nodes = [
-            ...eventPath(event),
-            ...ancestors(nativeElement)
-        ];
-
-        for (const node of nodes) {
-
-            if (node ===
-                nativeElement) {
-
-                continue;
-            }
-
-            if (isLogicalAngularHost(
-                node)) {
-
-                return node;
-            }
-        }
-
-        return null;
-    }
-
-
-
-    /* =========================================================
-       CONTROL NAME
-       ========================================================= */
-
-    function controlName(
-        nativeElement,
-        customHost) {
-
-        const elements = [
-            nativeElement,
-            customHost
-        ];
-
-        for (const element of elements) {
-
-            if (!element ||
-                !element.getAttribute) {
-
-                continue;
-            }
-
-            const value =
-                clean(
-                    element.getAttribute(
-                        'formControlName'
-                    ) ||
-                    element.getAttribute(
-                        'formcontrolname'
-                    ) ||
-                    element.getAttribute(
-                        'controlName'
-                    ) ||
-                    element.getAttribute(
-                        'controlname'
-                    ) ||
-                    element.getAttribute(
-                        'name'
-                    ) ||
-                    element.getAttribute(
-                        'ng-reflect-name'
-                    )
-                );
-
-            if (value) {
-                return value;
-            }
-        }
-
-        return null;
-    }
-
-
-
-    /* =========================================================
-       LABEL DETECTION
-       ========================================================= */
-
-    function labelledBy(
-        element) {
-
-        if (!element ||
-            !element.getAttribute) {
-
-            return null;
-        }
-
-        const ids =
-            clean(
-                element.getAttribute(
-                    'aria-labelledby'
-                )
-            );
-
-        if (!ids) {
-            return null;
-        }
-
-        return clean(
-            ids
-                .split(/\\s+/)
-                .map(
-                    id =>
-                        document.getElementById(
-                            id
+            (() => {
+            
+                if (window.__angularRecorderInstalled) {
+                    return;
+                }
+            
+                window.__angularRecorderInstalled = true;
+            
+                window.__angularRecorderEvents = [];
+            
+                const PREFIX =
+                    '__ANGULAR_RECORDER_EVENT__';
+            
+                const timers =
+                    new WeakMap();
+            
+                const pending =
+                    new WeakMap();
+            
+                /*
+                 * Keeps the logical date control active while its calendar overlay
+                 * is open.  The overlay itself may be rendered elsewhere in the DOM,
+                 * so the clicked calendar cell is not necessarily a descendant of
+                 * the original datepicker component.
+                 */
+                let activeDateControl = null;
+                let activeDateBeforeValue = null;
+                let activeDateTimer = null;
+            
+                let currentStage = 1;
+            
+                let lastUrl =
+                    location.href;
+            
+                let lastMutationAt =
+                    Date.now();
+            
+            
+            
+                /* =========================================================
+                   BASIC HELPERS
+                   ========================================================= */
+            
+                function clean(value) {
+            
+                    if (value == null) {
+                        return null;
+                    }
+            
+                    const result =
+                        String(value)
+                            .replace(/\\s+/g, ' ')
+                            .trim();
+            
+                    return result || null;
+                }
+            
+            
+            
+                function shortText(element) {
+            
+                    if (!element) {
+                        return null;
+                    }
+            
+                    const text =
+                        clean(
+                            element.innerText ||
+                            element.textContent
+                        );
+            
+                    if (!text ||
+                        text.length > 180) {
+            
+                        return null;
+                    }
+            
+                    return text;
+                }
+            
+            
+            
+                function eventElement(event) {
+            
+                    const path =
+                        event &&
+                        event.composedPath
+                            ? event.composedPath()
+                            : [];
+            
+                    for (const item of path) {
+            
+                        if (item &&
+                            item.nodeType ===
+                            Node.ELEMENT_NODE) {
+            
+                            return item;
+                        }
+                    }
+            
+                    return event
+                        ? event.target
+                        : null;
+                }
+            
+            
+            
+                function eventPath(event) {
+            
+                    if (event &&
+                        event.composedPath) {
+            
+                        return event
+                            .composedPath()
+                            .filter(
+                                x =>
+                                    x &&
+                                    x.nodeType ===
+                                    Node.ELEMENT_NODE
+                            );
+                    }
+            
+                    return [];
+                }
+            
+            
+            
+                function ancestors(element) {
+            
+                    const result = [];
+            
+                    let current =
+                        element;
+            
+                    while (current &&
+                           current !==
+                           document.documentElement) {
+            
+                        result.push(current);
+            
+                        current =
+                            current.parentElement;
+                    }
+            
+                    return result;
+                }
+            
+            
+            
+                /* =========================================================
+                   FIND ACTUAL CONTROL
+                   ========================================================= */
+            
+                function isNativeOrSemanticControl(element) {
+            
+                    if (!element ||
+                        !element.matches) {
+            
+                        return false;
+                    }
+            
+                    return element.matches(`
+                        input,
+                        textarea,
+                        select,
+                        button,
+                        a,
+                        [contenteditable="true"],
+                        [role="textbox"],
+                        [role="searchbox"],
+                        [role="combobox"],
+                        [role="checkbox"],
+                        [role="radio"],
+                        [role="switch"],
+                        [role="button"],
+                        [role="link"],
+                        [role="option"],
+                        [role="menuitem"],
+                        [role="slider"],
+                        [role="spinbutton"]
+                    `);
+                }
+            
+            
+            
+                function closestMeaningful(
+                    event) {
+            
+                    const path =
+                        eventPath(event);
+            
+                    /*
+                     * First prefer actual native/semantic input.
+                     */
+                    for (const node of path) {
+            
+                        if (isNativeOrSemanticControl(
+                            node)) {
+            
+                            return node;
+                        }
+                    }
+            
+                    /*
+                     * Then custom Angular component.
+                     */
+                    for (const node of path) {
+            
+                        if (isLogicalAngularHost(
+                            node)) {
+            
+                            return node;
+                        }
+                    }
+            
+                    return eventElement(event);
+                }
+            
+            
+            
+                /* =========================================================
+                   GENERIC ANGULAR CUSTOM CONTROL DETECTION
+                   ========================================================= */
+            
+                function isLogicalAngularHost(
+                    element) {
+            
+                    if (!element ||
+                        !element.getAttribute) {
+            
+                        return false;
+                    }
+            
+                    const tag =
+                        (
+                            element.tagName ||
+                            ''
+                        ).toLowerCase();
+            
+                    /*
+                     * Generic Angular/custom component.
+                     *
+                     * Example:
+                     *
+                     * mt-dropdown
+                     * dcrm-dcrm-datepicker
+                     * abc-customer-selector
+                     *
+                     * No component name is hardcoded.
+                     */
+                    if (tag.includes('-')) {
+                        return true;
+                    }
+            
+                    if (
+                        element.hasAttribute(
+                            'formControlName'
+                        ) ||
+                        element.hasAttribute(
+                            'formcontrolname'
+                        ) ||
+                        element.hasAttribute(
+                            'controlName'
+                        ) ||
+                        element.hasAttribute(
+                            'controlname'
+                        ) ||
+                        element.hasAttribute(
+                            'ngModel'
+                        ) ||
+                        element.hasAttribute(
+                            'ngmodel'
                         )
-                )
-                .filter(Boolean)
-                .map(
-                    element =>
-                        element.innerText ||
-                        element.textContent
-                )
-                .join(' ')
-        );
-    }
-
-
-
-    function cleanLabelText(
-        label) {
-
-        if (!label) {
-            return null;
-        }
-
-        const clone =
-            label.cloneNode(true);
-
-        /*
-         * Remove tooltip/help/error decorations.
-         */
-        clone
-            .querySelectorAll(`
-                [role="tooltip"],
-                [class*="tooltip"],
-                [class*="error"],
-                mat-icon,
-                svg,
-                small
-            `)
-            .forEach(
-                element =>
-                    element.remove()
-            );
-
-        return clean(
-            clone.textContent
-        );
-    }
-
-
-
-    function associatedLabel(
-        element) {
-
-        if (!element) {
-            return null;
-        }
-
-        if (element.labels &&
-            element.labels.length) {
-
-            const result =
-                clean(
-                    Array.from(
-                        element.labels
-                    )
-                    .map(
-                        cleanLabelText
-                    )
-                    .filter(Boolean)
-                    .join(' ')
-                );
-
-            if (result) {
-                return result;
-            }
-        }
-
-        const id =
-            clean(
-                element.id
-            );
-
-        if (id) {
-
-            try {
-
-                const label =
-                    document.querySelector(
-                        `label[for="${CSS.escape(id)}"]`
-                    );
-
-                if (label) {
-
-                    return cleanLabelText(
-                        label
+                    ) {
+            
+                        return true;
+                    }
+            
+                    return false;
+                }
+            
+            
+            
+                function findLogicalAngularHost(
+                    nativeElement,
+                    event) {
+            
+                    const nodes = [
+                        ...eventPath(event),
+                        ...ancestors(nativeElement)
+                    ];
+            
+                    /*
+                     * Prefer the business/logical component carrying the form binding.
+                     * Example:
+                     *   dcrm-dcrm-datepicker controlName="detectedDate"
+                     *       -> mt-date-picker
+                     *           -> button "Open picker"
+                     *
+                     * Returning the nearest custom tag would incorrectly identify
+                     * mt-date-picker instead of the actual form control.
+                     */
+                    for (const node of nodes) {
+            
+                        if (!node ||
+                            node === nativeElement ||
+                            !node.getAttribute) {
+            
+                            continue;
+                        }
+            
+                        if (
+                            node.hasAttribute('formControlName') ||
+                            node.hasAttribute('formcontrolname') ||
+                            node.hasAttribute('controlName') ||
+                            node.hasAttribute('controlname') ||
+                            node.hasAttribute('ngModel') ||
+                            node.hasAttribute('ngmodel')
+                        ) {
+            
+                            return node;
+                        }
+                    }
+            
+                    for (const node of nodes) {
+            
+                        if (node ===
+                            nativeElement) {
+            
+                            continue;
+                        }
+            
+                        if (isLogicalAngularHost(
+                            node)) {
+            
+                            return node;
+                        }
+                    }
+            
+                    return null;
+                }
+            
+            
+            
+                /* =========================================================
+                   CONTROL NAME
+                   ========================================================= */
+            
+                function controlName(
+                    nativeElement,
+                    customHost) {
+            
+                    const elements = [
+                        nativeElement,
+                        customHost
+                    ];
+            
+                    for (const element of elements) {
+            
+                        if (!element ||
+                            !element.getAttribute) {
+            
+                            continue;
+                        }
+            
+                        const value =
+                            clean(
+                                element.getAttribute(
+                                    'formControlName'
+                                ) ||
+                                element.getAttribute(
+                                    'formcontrolname'
+                                ) ||
+                                element.getAttribute(
+                                    'controlName'
+                                ) ||
+                                element.getAttribute(
+                                    'controlname'
+                                ) ||
+                                element.getAttribute(
+                                    'name'
+                                ) ||
+                                element.getAttribute(
+                                    'ng-reflect-name'
+                                )
+                            );
+            
+                        if (value) {
+                            return value;
+                        }
+                    }
+            
+                    return null;
+                }
+            
+            
+            
+                /* =========================================================
+                   LABEL DETECTION
+                   ========================================================= */
+            
+                function labelledBy(
+                    element) {
+            
+                    if (!element ||
+                        !element.getAttribute) {
+            
+                        return null;
+                    }
+            
+                    const ids =
+                        clean(
+                            element.getAttribute(
+                                'aria-labelledby'
+                            )
+                        );
+            
+                    if (!ids) {
+                        return null;
+                    }
+            
+                    return clean(
+                        ids
+                            .split(/\\s+/)
+                            .map(
+                                id =>
+                                    document.getElementById(
+                                        id
+                                    )
+                            )
+                            .filter(Boolean)
+                            .map(
+                                element =>
+                                    element.innerText ||
+                                    element.textContent
+                            )
+                            .join(' ')
                     );
                 }
-
-            } catch (_) {
-            }
-        }
-
-        const wrapping =
-            element.closest
-                ? element.closest(
-                    'label'
-                )
-                : null;
-
-        if (wrapping) {
-
-            const result =
-                cleanLabelText(
-                    wrapping
-                );
-
-            if (result) {
-                return result;
-            }
-        }
-
-        const ariaLabelled =
-            labelledBy(element);
-
-        if (ariaLabelled) {
-            return ariaLabelled;
-        }
-
-        return null;
-    }
-
-
-
-    function findFormContainer(
-        nativeElement,
-        customHost) {
-
-        const source =
-            customHost ||
-            nativeElement;
-
-        if (!source ||
-            !source.closest) {
-
-            return null;
-        }
-
-        return source.closest(`
-            .form-group,
-            .lmn-form-group,
-            .form-field,
-            .field,
-            .mat-mdc-form-field,
-            .mat-form-field,
-            .p-field,
-            .p-float-label,
-            [class*="form-group"],
-            [class*="form-field"]
-        `);
-    }
-
-
-
-    function labelFromContainer(
-        nativeElement,
-        customHost) {
-
-        const container =
-            findFormContainer(
-                nativeElement,
-                customHost
-            );
-
-        if (!container) {
-            return null;
-        }
-
-        /*
-         * Prefer direct form label.
-         */
-        const labels =
-            Array.from(
-                container.querySelectorAll(
-                    'label'
-                )
-            );
-
-        for (const label of labels) {
-
-            const text =
-                cleanLabelText(
-                    label
-                );
-
-            if (text) {
-                return text;
-            }
-        }
-
-        return null;
-    }
-
-
-
-    function visibleLabel(
-        nativeElement,
-        customHost) {
-
-        return clean(
-            associatedLabel(
-                nativeElement
-            ) ||
-
-            nativeElement
-                ?.getAttribute
-                ?.('aria-label') ||
-
-            labelledBy(
-                nativeElement
-            ) ||
-
-            customHost
-                ?.getAttribute
-                ?.('aria-label') ||
-
-            labelledBy(
-                customHost
-            ) ||
-
-            labelFromContainer(
-                nativeElement,
-                customHost
-            )
-        );
-    }
-
-
-
-    /* =========================================================
-       CONTROL RESOLUTION
-       ========================================================= */
-
-    function resolveControl(
-        event) {
-
-        const nativeElement =
-            closestMeaningful(
-                event
-            );
-
-        const customHost =
-            findLogicalAngularHost(
-                nativeElement,
-                event
-            );
-
-        const label =
-            visibleLabel(
-                nativeElement,
-                customHost
-            );
-
-        const name =
-            controlName(
-                nativeElement,
-                customHost
-            );
-
-        return {
-            nativeElement,
-            customHost,
-            label,
-            controlName: name
-        };
-    }
-
-
-
-    /* =========================================================
-       INPUT TYPE DETECTION
-       ========================================================= */
-
-    function detectInputType(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        const host =
-            control.customHost;
-
-        const tag =
-            (
-                element
-                    ?.tagName ||
-                ''
-            ).toLowerCase();
-
-        const role =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('role') ||
-
-                host
-                    ?.getAttribute
-                    ?.('role')
-            );
-
-        const type =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('type')
-            )?.toLowerCase();
-
-        if (type === 'file') {
-            return 'FILE';
-        }
-
-        if (
-            type === 'checkbox' ||
-            role === 'checkbox'
-        ) {
-
-            return 'CHECKBOX';
-        }
-
-        if (
-            type === 'radio' ||
-            role === 'radio'
-        ) {
-
-            return 'RADIO';
-        }
-
-        if (role === 'switch') {
-            return 'TOGGLE';
-        }
-
-        if (
-            type === 'date' ||
-            type === 'datetime-local' ||
-            type === 'month' ||
-            type === 'week' ||
-            type === 'time'
-        ) {
-
-            return 'DATE';
-        }
-
-        if (
-            type === 'range' ||
-            role === 'slider'
-        ) {
-
-            return 'SLIDER';
-        }
-
-        if (tag === 'textarea') {
-            return 'TEXTAREA';
-        }
-
-        if (tag === 'select') {
-            return 'SELECT';
-        }
-
-        if (
-            role === 'combobox' ||
-            role === 'searchbox' ||
-            element
-                ?.getAttribute
-                ?.('aria-autocomplete')
-        ) {
-
-            return 'AUTOCOMPLETE';
-        }
-
-        if (
-            element
-                ?.isContentEditable
-        ) {
-
-            return 'RICH_TEXT';
-        }
-
-        if (type === 'password') {
-            return 'PASSWORD';
-        }
-
-        if (type === 'email') {
-            return 'EMAIL';
-        }
-
-        if (type === 'number') {
-            return 'NUMBER';
-        }
-
-        if (type === 'tel') {
-            return 'TEL';
-        }
-
-        if (type === 'url') {
-            return 'URL';
-        }
-
-        if (type === 'search') {
-            return 'SEARCH';
-        }
-
-        if (
-            tag === 'input' ||
-            role === 'textbox'
-        ) {
-
-            return 'TEXT';
-        }
-
-        if (
-            tag === 'button' ||
-            role === 'button'
-        ) {
-
-            return 'BUTTON';
-        }
-
-        if (
-            tag === 'a' ||
-            role === 'link'
-        ) {
-
-            return 'LINK';
-        }
-
-        if (role === 'option') {
-            return 'OPTION';
-        }
-
-        /*
-         * Generic custom component inference.
-         */
-        if (host) {
-
-            const hasFile =
-                host.querySelector(
-                    'input[type="file"]'
-                );
-
-            if (hasFile) {
-                return 'FILE';
-            }
-
-            const hasCheckbox =
-                host.querySelector(
-                    'input[type="checkbox"],[role="checkbox"]'
-                );
-
-            if (hasCheckbox) {
-                return 'CHECKBOX';
-            }
-
-            const hasRadio =
-                host.querySelector(
-                    'input[type="radio"],[role="radio"]'
-                );
-
-            if (hasRadio) {
-                return 'RADIO';
-            }
-
-            const hasSearch =
-                host.querySelector(
-                    'input[type="search"],[role="searchbox"],[role="combobox"],input[aria-autocomplete]'
-                );
-
-            if (hasSearch) {
-                return 'AUTOCOMPLETE';
-            }
-
-            const hasText =
-                host.querySelector(
-                    'input,textarea,[role="textbox"]'
-                );
-
-            if (hasText) {
-                return 'TEXT';
-            }
-        }
-
-        return 'CUSTOM';
-    }
-
-
-
-    /* =========================================================
-       IDENTIFICATION
-       ========================================================= */
-
-    function candidates(
-        control) {
-
-        const result = {};
-
-        const element =
-            control.nativeElement;
-
-        const host =
-            control.customHost;
-
-        if (control.label) {
-            result.LABEL =
-                control.label;
-        }
-
-        const ariaLabel =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('aria-label') ||
-
-                host
-                    ?.getAttribute
-                    ?.('aria-label')
-            );
-
-        if (ariaLabel) {
-
-            result.ARIA_LABEL =
-                ariaLabel;
-        }
-
-        const accessible =
-            clean(
-                associatedLabel(
-                    element
-                ) ||
-
-                ariaLabel ||
-
-                labelledBy(
-                    element
-                )
-            );
-
-        if (accessible) {
-
-            result.ACCESSIBLE_NAME =
-                accessible;
-        }
-
-        if (control.controlName) {
-
-            /*
-             * Determine whether it came from formControlName
-             * or custom controlName.
-             */
-            const formControl =
-                clean(
-                    element
-                        ?.getAttribute
-                        ?.('formControlName') ||
-
-                    element
-                        ?.getAttribute
-                        ?.('formcontrolname') ||
-
-                    host
-                        ?.getAttribute
-                        ?.('formControlName') ||
-
-                    host
-                        ?.getAttribute
-                        ?.('formcontrolname')
-                );
-
-            if (formControl) {
-
-                result.FORM_CONTROL_NAME =
-                    formControl;
-
-            } else {
-
-                result.CONTROL_NAME =
-                    control.controlName;
-            }
-        }
-
-        const name =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('name') ||
-
-                host
-                    ?.getAttribute
-                    ?.('name')
-            );
-
-        if (name) {
-
-            result.NAME =
-                name;
-        }
-
-        const id =
-            clean(
-                element?.id ||
-                host?.id
-            );
-
-        if (id) {
-
-            result.ID =
-                id;
-        }
-
-        const role =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('role') ||
-
-                host
-                    ?.getAttribute
-                    ?.('role')
-            );
-
-        if (role) {
-
-            result.ROLE =
-                role;
-        }
-
-        const placeholder =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('placeholder')
-            );
-
-        /*
-         * Placeholder is metadata only.
-         * It never creates a second event.
-         */
-        if (placeholder) {
-
-            result.PLACEHOLDER =
-                placeholder;
-        }
-
-        const testId =
-            clean(
-                element
-                    ?.getAttribute
-                    ?.('data-testid') ||
-
-                element
-                    ?.getAttribute
-                    ?.('data-test') ||
-
-                host
-                    ?.getAttribute
-                    ?.('data-testid') ||
-
-                host
-                    ?.getAttribute
-                    ?.('data-test')
-            );
-
-        if (testId) {
-
-            result.DATA_TESTID =
-                testId;
-        }
-
-        if (host) {
-
-            const component =
-                clean(
-                    host.tagName
-                )?.toLowerCase();
-
-            if (component) {
-
-                result.COMPONENT =
-                    component;
-            }
-        }
-
-        return result;
-    }
-
-
-
-    function semanticInputName(
-        control) {
-
-        const c =
-            candidates(
-                control
-            );
-
-        /*
-         * Label is highest priority.
-         */
-        return clean(
-            c.LABEL ||
-            c.ARIA_LABEL ||
-            c.ACCESSIBLE_NAME ||
-            c.FORM_CONTROL_NAME ||
-            c.CONTROL_NAME ||
-            c.NAME ||
-            c.ID ||
-            c.PLACEHOLDER ||
-            c.COMPONENT ||
-            'unnamed'
-        );
-    }
-
-
-
-    function identifyBy(
-        control) {
-
-        const c =
-            candidates(control);
-
-        const priority = [
-            'LABEL',
-            'ARIA_LABEL',
-            'ACCESSIBLE_NAME',
-            'FORM_CONTROL_NAME',
-            'CONTROL_NAME',
-            'NAME',
-            'ID',
-            'ROLE',
-            'DATA_TESTID',
-            'PLACEHOLDER',
-            'COMPONENT'
-        ];
-
-        for (const strategy of priority) {
-
-            if (c[strategy]) {
-
-                return {
-                    preferredStrategy:
-                        strategy,
-
-                    preferredValue:
-                        c[strategy],
-
-                    candidates:
-                        c
-                };
-            }
-        }
-
-        return {
-            preferredStrategy:
-                'INPUT',
-
-            preferredValue:
-                semanticInputName(
-                    control
-                ),
-
-            candidates:
-                c
-        };
-    }
-
-
-
-    /* =========================================================
-       VALUE
-       ========================================================= */
-
-    function currentValue(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element) {
-            return null;
-        }
-
-        if (
-            element
-                .isContentEditable
-        ) {
-
-            return clean(
-                element.innerText
-            );
-        }
-
-        if (
-            'value' in element &&
-            element.value != null
-        ) {
-
-            return clean(
-                element.value
-            );
-        }
-
-        return clean(
-            element
-                .getAttribute
-                ?.('aria-valuetext') ||
-
-            element
-                .getAttribute
-                ?.('aria-valuenow')
-        );
-    }
-
-
-
-    function checkedState(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element) {
-            return null;
-        }
-
-        if ('checked' in element) {
-
-            return !!element.checked;
-        }
-
-        const aria =
-            clean(
-                element
-                    .getAttribute
-                    ?.('aria-checked')
-            );
-
-        if (aria === 'true') {
-            return true;
-        }
-
-        if (aria === 'false') {
-            return false;
-        }
-
-        return null;
-    }
-
-
-
-    /* =========================================================
-       DIALOG CONTEXT
-       ========================================================= */
-
-    function dialogContext(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        const dialog =
-            element
-                ?.closest
-                ?.(`
-                    [role="dialog"],
-                    [aria-modal="true"]
-                `);
-
-        if (!dialog) {
-            return null;
-        }
-
-        return {
-            type:
-                'DIALOG',
-
-            name:
-                clean(
-                    dialog
-                        .getAttribute(
-                            'aria-label'
+            
+            
+            
+                function cleanLabelText(
+                    label) {
+            
+                    if (!label) {
+                        return null;
+                    }
+            
+                    const clone =
+                        label.cloneNode(true);
+            
+                    /*
+                     * Remove tooltip/help/error decorations.
+                     */
+                    clone
+                        .querySelectorAll(`
+                            [role="tooltip"],
+                            [class*="tooltip"],
+                            [class*="error"],
+                            mat-icon,
+                            svg,
+                            small
+                        `)
+                        .forEach(
+                            element =>
+                                element.remove()
+                        );
+            
+                    return clean(
+                        clone.textContent
+                    );
+                }
+            
+            
+            
+                function associatedLabel(
+                    element) {
+            
+                    if (!element) {
+                        return null;
+                    }
+            
+                    if (element.labels &&
+                        element.labels.length) {
+            
+                        const result =
+                            clean(
+                                Array.from(
+                                    element.labels
+                                )
+                                .map(
+                                    cleanLabelText
+                                )
+                                .filter(Boolean)
+                                .join(' ')
+                            );
+            
+                        if (result) {
+                            return result;
+                        }
+                    }
+            
+                    const id =
+                        clean(
+                            element.id
+                        );
+            
+                    if (id) {
+            
+                        try {
+            
+                            const label =
+                                document.querySelector(
+                                    `label[for="${CSS.escape(id)}"]`
+                                );
+            
+                            if (label) {
+            
+                                return cleanLabelText(
+                                    label
+                                );
+                            }
+            
+                        } catch (_) {
+                        }
+                    }
+            
+                    const wrapping =
+                        element.closest
+                            ? element.closest(
+                                'label'
+                            )
+                            : null;
+            
+                    if (wrapping) {
+            
+                        const result =
+                            cleanLabelText(
+                                wrapping
+                            );
+            
+                        if (result) {
+                            return result;
+                        }
+                    }
+            
+                    const ariaLabelled =
+                        labelledBy(element);
+            
+                    if (ariaLabelled) {
+                        return ariaLabelled;
+                    }
+            
+                    return null;
+                }
+            
+            
+            
+                function findFormContainer(
+                    nativeElement,
+                    customHost) {
+            
+                    const source =
+                        customHost ||
+                        nativeElement;
+            
+                    if (!source ||
+                        !source.closest) {
+            
+                        return null;
+                    }
+            
+                    return source.closest(`
+                        .form-group,
+                        .lmn-form-group,
+                        .form-field,
+                        .field,
+                        .mat-mdc-form-field,
+                        .mat-form-field,
+                        .p-field,
+                        .p-float-label,
+                        [class*="form-group"],
+                        [class*="form-field"]
+                    `);
+                }
+            
+            
+            
+                function labelFromContainer(
+                    nativeElement,
+                    customHost) {
+            
+                    const container =
+                        findFormContainer(
+                            nativeElement,
+                            customHost
+                        );
+            
+                    if (!container) {
+                        return null;
+                    }
+            
+                    /*
+                     * Prefer direct form label.
+                     */
+                    const labels =
+                        Array.from(
+                            container.querySelectorAll(
+                                'label'
+                            )
+                        );
+            
+                    for (const label of labels) {
+            
+                        const text =
+                            cleanLabelText(
+                                label
+                            );
+            
+                        if (text) {
+                            return text;
+                        }
+                    }
+            
+                    return null;
+                }
+            
+            
+            
+                function visibleLabel(
+                    nativeElement,
+                    customHost) {
+            
+                    return clean(
+                        associatedLabel(
+                            nativeElement
                         ) ||
-
-                    labelledBy(
-                        dialog
-                    ) ||
-
-                    dialog
-                        .querySelector(
-                            'h1,h2,h3,[role="heading"]'
+            
+                        nativeElement
+                            ?.getAttribute
+                            ?.('aria-label') ||
+            
+                        labelledBy(
+                            nativeElement
+                        ) ||
+            
+                        customHost
+                            ?.getAttribute
+                            ?.('aria-label') ||
+            
+                        labelledBy(
+                            customHost
+                        ) ||
+            
+                        labelFromContainer(
+                            nativeElement,
+                            customHost
                         )
-                        ?.textContent
-                ) ||
-                'dialog'
-        };
-    }
-
-
-
-    /* =========================================================
-       EVENT EMIT
-       ========================================================= */
-
-    function emit(
-        event) {
-
-        const full = {
-
-            timestamp:
-                Date.now(),
-
-            stage:
-                currentStage,
-
-            url:
-                location.href,
-
-            ...event
-        };
-
-        window
-            .__angularRecorderEvents
-            .push(full);
-
-        console.log(
-            PREFIX +
-            JSON.stringify(full)
-        );
-    }
-
-
-
-    function baseEvent(
-        control,
-        actionType,
-        typeOverride) {
-
-        return {
-
-            actionType,
-
-            inputType:
-                typeOverride ||
-                detectInputType(
-                    control
-                ),
-
-            input:
-                semanticInputName(
-                    control
-                ),
-
-            identifyBy:
-                identifyBy(
-                    control
-                ),
-
-            context:
-                dialogContext(
-                    control
-                )
-        };
-    }
-
-
-
-    /* =========================================================
-       INPUT NORMALIZATION
-       ========================================================= */
-
-    function editableAction(
-        control) {
-
-        const type =
-            detectInputType(
-                control
-            );
-
-        if (
-            type ===
-            'AUTOCOMPLETE' ||
-            type ===
-            'SEARCH'
-        ) {
-
-            return 'SEARCH';
-        }
-
-        if (
-            type ===
-            'DATE'
-        ) {
-
-            return 'DATE_INPUT';
-        }
-
-        return 'INPUT';
-    }
-
-
-
-    function scheduleEditable(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element) {
-            return;
-        }
-
-        const oldTimer =
-            timers.get(
-                element
-            );
-
-        if (oldTimer) {
-
-            clearTimeout(
-                oldTimer
-            );
-        }
-
-        pending.set(
-            element,
-            {
-                control,
-                actionType:
-                    editableAction(
-                        control
-                    )
-            }
-        );
-
-        /*
-         * Capture final typed value,
-         * not one event for every character.
-         */
-        const timer =
-            setTimeout(
-                () => {
-
+                    );
+                }
+            
+            
+            
+                /* =========================================================
+                   CONTROL RESOLUTION
+                   ========================================================= */
+            
+                function resolveControl(
+                    event) {
+            
+                    const nativeElement =
+                        closestMeaningful(
+                            event
+                        );
+            
+                    const customHost =
+                        findLogicalAngularHost(
+                            nativeElement,
+                            event
+                        );
+            
+                    const label =
+                        visibleLabel(
+                            nativeElement,
+                            customHost
+                        );
+            
+                    const name =
+                        controlName(
+                            nativeElement,
+                            customHost
+                        );
+            
+                    return {
+                        nativeElement,
+                        customHost,
+                        label,
+                        controlName: name
+                    };
+                }
+            
+            
+            
+                function dateSemanticText(
+                    control) {
+            
+                    const element =
+                        control?.nativeElement;
+            
+                    const host =
+                        control?.customHost;
+            
+                    return clean([
+                        element?.tagName,
+                        host?.tagName,
+                        control?.label,
+                        control?.controlName,
+                        element?.getAttribute?.('aria-label'),
+                        host?.getAttribute?.('aria-label'),
+                        element?.getAttribute?.('name'),
+                        host?.getAttribute?.('name'),
+                        element?.getAttribute?.('id'),
+                        host?.getAttribute?.('id'),
+                        element?.getAttribute?.('class'),
+                        host?.getAttribute?.('class')
+                    ]
+                        .filter(Boolean)
+                        .join(' ')
+                    )?.toLowerCase();
+                }
+            
+            
+            
+                function isDateLikeControl(
+                    control) {
+            
+                    if (!control) {
+                        return false;
+                    }
+            
+                    const element =
+                        control.nativeElement;
+            
+                    const host =
+                        control.customHost;
+            
+                    const nativeType =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('type')
+                        )?.toLowerCase();
+            
+                    if ([
+                        'date',
+                        'datetime-local',
+                        'month',
+                        'week',
+                        'time'
+                    ].includes(nativeType)) {
+            
+                        return true;
+                    }
+            
+                    if (
+                        host
+                            ?.querySelector
+                            ?.(`
+                                input[type="date"],
+                                input[type="datetime-local"],
+                                input[type="month"],
+                                input[type="week"],
+                                input[type="time"]
+                            `)
+                    ) {
+            
+                        return true;
+                    }
+            
+                    const semantic =
+                        dateSemanticText(
+                            control
+                        ) || '';
+            
+                    return /(^|[^a-z])(date|datepicker|date-picker|calendar)([^a-z]|$)/
+                        .test(
+                            semantic
+                        );
+                }
+            
+            
+            
+                /* =========================================================
+                   INPUT TYPE DETECTION
+                   ========================================================= */
+            
+                function detectInputType(
+                    control) {
+            
+                    const element =
+                        control.nativeElement;
+            
+                    const host =
+                        control.customHost;
+            
+                    const tag =
+                        (
+                            element
+                                ?.tagName ||
+                            ''
+                        ).toLowerCase();
+            
+                    const role =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('role') ||
+            
+                            host
+                                ?.getAttribute
+                                ?.('role')
+                        );
+            
+                    const type =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('type')
+                        )?.toLowerCase();
+            
+                    if (type === 'file') {
+                        return 'FILE';
+                    }
+            
+                    if (
+                        type === 'checkbox' ||
+                        role === 'checkbox'
+                    ) {
+            
+                        return 'CHECKBOX';
+                    }
+            
+                    if (
+                        type === 'radio' ||
+                        role === 'radio'
+                    ) {
+            
+                        return 'RADIO';
+                    }
+            
+                    if (role === 'switch') {
+                        return 'TOGGLE';
+                    }
+            
+                    if (
+                        type === 'date' ||
+                        type === 'datetime-local' ||
+                        type === 'month' ||
+                        type === 'week' ||
+                        type === 'time' ||
+                        isDateLikeControl(control)
+                    ) {
+            
+                        return 'DATE';
+                    }
+            
+                    if (
+                        type === 'range' ||
+                        role === 'slider'
+                    ) {
+            
+                        return 'SLIDER';
+                    }
+            
+                    if (tag === 'textarea') {
+                        return 'TEXTAREA';
+                    }
+            
+                    if (tag === 'select') {
+                        return 'SELECT';
+                    }
+            
+                    if (
+                        role === 'combobox' ||
+                        role === 'searchbox' ||
+                        element
+                            ?.getAttribute
+                            ?.('aria-autocomplete')
+                    ) {
+            
+                        return 'AUTOCOMPLETE';
+                    }
+            
+                    if (
+                        element
+                            ?.isContentEditable
+                    ) {
+            
+                        return 'RICH_TEXT';
+                    }
+            
+                    if (type === 'password') {
+                        return 'PASSWORD';
+                    }
+            
+                    if (type === 'email') {
+                        return 'EMAIL';
+                    }
+            
+                    if (type === 'number') {
+                        return 'NUMBER';
+                    }
+            
+                    if (type === 'tel') {
+                        return 'TEL';
+                    }
+            
+                    if (type === 'url') {
+                        return 'URL';
+                    }
+            
+                    if (type === 'search') {
+                        return 'SEARCH';
+                    }
+            
+                    if (
+                        tag === 'input' ||
+                        role === 'textbox'
+                    ) {
+            
+                        return 'TEXT';
+                    }
+            
+                    if (
+                        tag === 'button' ||
+                        role === 'button'
+                    ) {
+            
+                        return 'BUTTON';
+                    }
+            
+                    if (
+                        tag === 'a' ||
+                        role === 'link'
+                    ) {
+            
+                        return 'LINK';
+                    }
+            
+                    if (role === 'option') {
+                        return 'OPTION';
+                    }
+            
+                    /*
+                     * Generic custom component inference.
+                     */
+                    if (host) {
+            
+                        const hasFile =
+                            host.querySelector(
+                                'input[type="file"]'
+                            );
+            
+                        if (hasFile) {
+                            return 'FILE';
+                        }
+            
+                        const hasCheckbox =
+                            host.querySelector(
+                                'input[type="checkbox"],[role="checkbox"]'
+                            );
+            
+                        if (hasCheckbox) {
+                            return 'CHECKBOX';
+                        }
+            
+                        const hasRadio =
+                            host.querySelector(
+                                'input[type="radio"],[role="radio"]'
+                            );
+            
+                        if (hasRadio) {
+                            return 'RADIO';
+                        }
+            
+                        const hasSearch =
+                            host.querySelector(
+                                'input[type="search"],[role="searchbox"],[role="combobox"],input[aria-autocomplete]'
+                            );
+            
+                        if (hasSearch) {
+                            return 'AUTOCOMPLETE';
+                        }
+            
+                        const hasText =
+                            host.querySelector(
+                                'input,textarea,[role="textbox"]'
+                            );
+            
+                        if (hasText) {
+                            return 'TEXT';
+                        }
+                    }
+            
+                    return 'CUSTOM';
+                }
+            
+            
+            
+                /* =========================================================
+                   IDENTIFICATION
+                   ========================================================= */
+            
+                function candidates(
+                    control) {
+            
+                    const result = {};
+            
+                    const element =
+                        control.nativeElement;
+            
+                    const host =
+                        control.customHost;
+            
+                    if (control.label) {
+                        result.LABEL =
+                            control.label;
+                    }
+            
+                    const ariaLabel =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('aria-label') ||
+            
+                            host
+                                ?.getAttribute
+                                ?.('aria-label')
+                        );
+            
+                    if (ariaLabel) {
+            
+                        result.ARIA_LABEL =
+                            ariaLabel;
+                    }
+            
+                    const accessible =
+                        clean(
+                            associatedLabel(
+                                element
+                            ) ||
+            
+                            ariaLabel ||
+            
+                            labelledBy(
+                                element
+                            )
+                        );
+            
+                    if (accessible) {
+            
+                        result.ACCESSIBLE_NAME =
+                            accessible;
+                    }
+            
+                    if (control.controlName) {
+            
+                        /*
+                         * Determine whether it came from formControlName
+                         * or custom controlName.
+                         */
+                        const formControl =
+                            clean(
+                                element
+                                    ?.getAttribute
+                                    ?.('formControlName') ||
+            
+                                element
+                                    ?.getAttribute
+                                    ?.('formcontrolname') ||
+            
+                                host
+                                    ?.getAttribute
+                                    ?.('formControlName') ||
+            
+                                host
+                                    ?.getAttribute
+                                    ?.('formcontrolname')
+                            );
+            
+                        if (formControl) {
+            
+                            result.FORM_CONTROL_NAME =
+                                formControl;
+            
+                        } else {
+            
+                            result.CONTROL_NAME =
+                                control.controlName;
+                        }
+                    }
+            
+                    const name =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('name') ||
+            
+                            host
+                                ?.getAttribute
+                                ?.('name')
+                        );
+            
+                    if (name) {
+            
+                        result.NAME =
+                            name;
+                    }
+            
+                    const id =
+                        clean(
+                            element?.id ||
+                            host?.id
+                        );
+            
+                    if (id) {
+            
+                        result.ID =
+                            id;
+                    }
+            
+                    const role =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('role') ||
+            
+                            host
+                                ?.getAttribute
+                                ?.('role')
+                        );
+            
+                    if (role) {
+            
+                        result.ROLE =
+                            role;
+                    }
+            
+                    const placeholder =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('placeholder')
+                        );
+            
+                    /*
+                     * Placeholder is metadata only.
+                     * It never creates a second event.
+                     */
+                    if (placeholder) {
+            
+                        result.PLACEHOLDER =
+                            placeholder;
+                    }
+            
+                    const testId =
+                        clean(
+                            element
+                                ?.getAttribute
+                                ?.('data-testid') ||
+            
+                            element
+                                ?.getAttribute
+                                ?.('data-test') ||
+            
+                            host
+                                ?.getAttribute
+                                ?.('data-testid') ||
+            
+                            host
+                                ?.getAttribute
+                                ?.('data-test')
+                        );
+            
+                    if (testId) {
+            
+                        result.DATA_TESTID =
+                            testId;
+                    }
+            
+                    if (host) {
+            
+                        const component =
+                            clean(
+                                host.tagName
+                            )?.toLowerCase();
+            
+                        if (component) {
+            
+                            result.COMPONENT =
+                                component;
+                        }
+                    }
+            
+                    return result;
+                }
+            
+            
+            
+                function semanticInputName(
+                    control) {
+            
+                    const c =
+                        candidates(
+                            control
+                        );
+            
+                    /*
+                     * Label is highest priority.
+                     */
+                    return clean(
+                        c.LABEL ||
+                        c.ARIA_LABEL ||
+                        c.ACCESSIBLE_NAME ||
+                        c.FORM_CONTROL_NAME ||
+                        c.CONTROL_NAME ||
+                        c.NAME ||
+                        c.ID ||
+                        c.PLACEHOLDER ||
+                        c.COMPONENT ||
+                        'unnamed'
+                    );
+                }
+            
+            
+            
+                function identifyBy(
+                    control) {
+            
+                    const c =
+                        candidates(control);
+            
+                    const priority = [
+                        'LABEL',
+                        'ARIA_LABEL',
+                        'ACCESSIBLE_NAME',
+                        'FORM_CONTROL_NAME',
+                        'CONTROL_NAME',
+                        'NAME',
+                        'ID',
+                        'ROLE',
+                        'DATA_TESTID',
+                        'PLACEHOLDER',
+                        'COMPONENT'
+                    ];
+            
+                    for (const strategy of priority) {
+            
+                        if (c[strategy]) {
+            
+                            return {
+                                preferredStrategy:
+                                    strategy,
+            
+                                preferredValue:
+                                    c[strategy],
+            
+                                candidates:
+                                    c
+                            };
+                        }
+                    }
+            
+                    return {
+                        preferredStrategy:
+                            'INPUT',
+            
+                        preferredValue:
+                            semanticInputName(
+                                control
+                            ),
+            
+                        candidates:
+                            c
+                    };
+                }
+            
+            
+            
+                /* =========================================================
+                   VALUE
+                   ========================================================= */
+            
+                function valueFromElement(
+                    element) {
+            
+                    if (!element) {
+                        return null;
+                    }
+            
+                    if (
+                        element
+                            .isContentEditable
+                    ) {
+            
+                        return clean(
+                            element.innerText
+                        );
+                    }
+            
+                    if (
+                        'value' in element &&
+                        element.value != null
+                    ) {
+            
+                        const value =
+                            clean(
+                                element.value
+                            );
+            
+                        if (value) {
+                            return value;
+                        }
+                    }
+            
+                    return clean(
+                        element
+                            .getAttribute
+                            ?.('aria-valuetext') ||
+            
+                        element
+                            .getAttribute
+                            ?.('aria-valuenow')
+                    );
+                }
+            
+            
+            
+                function currentValue(
+                    control) {
+            
+                    const element =
+                        control.nativeElement;
+            
+                    const direct =
+                        valueFromElement(
+                            element
+                        );
+            
+                    /*
+                     * Do not allow the datepicker trigger text (for example
+                     * "Open picker") to become the date value.  For custom Angular
+                     * controls the real value usually lives in an internal input.
+                     */
+                    if (
+                        direct &&
+                        !(
+                            isDateLikeControl(control) &&
+                            (
+                                element?.tagName?.toLowerCase() === 'button' ||
+                                element?.getAttribute?.('role') === 'button'
+                            )
+                        )
+                    ) {
+            
+                        return direct;
+                    }
+            
+                    const roots = [
+                        control.customHost,
+                        findFormContainer(
+                            control.nativeElement,
+                            control.customHost
+                        )
+                    ].filter(Boolean);
+            
+                    for (const root of roots) {
+            
+                        const internal =
+                            root.querySelectorAll
+                                ? Array.from(
+                                    root.querySelectorAll(`
+                                        input:not([type="hidden"]),
+                                        textarea,
+                                        [role="textbox"],
+                                        [role="combobox"],
+                                        [contenteditable="true"]
+                                    `)
+                                )
+                                : [];
+            
+                        for (const candidate of internal) {
+            
+                            const value =
+                                valueFromElement(
+                                    candidate
+                                );
+            
+                            if (value) {
+                                return value;
+                            }
+                        }
+                    }
+            
+                    return direct;
+                }
+            
+            
+            
+                function startDateValueWatch(
+                    control,
+                    beforeValue) {
+            
+                    if (!control) {
+                        return;
+                    }
+            
+                    activeDateControl =
+                        control;
+            
+                    activeDateBeforeValue =
+                        beforeValue ??
+                        currentValue(control);
+            
+                    if (activeDateTimer) {
+                        clearTimeout(
+                            activeDateTimer
+                        );
+                    }
+            
+                    let attempts = 0;
+            
+                    const poll = () => {
+            
+                        if (!activeDateControl) {
+                            return;
+                        }
+            
+                        const actual =
+                            currentValue(
+                                activeDateControl
+                            );
+            
+                        if (
+                            actual &&
+                            actual !== activeDateBeforeValue
+                        ) {
+            
+                            emit({
+                                ...baseEvent(
+                                    activeDateControl,
+                                    'DATE_INPUT',
+                                    'DATE'
+                                ),
+            
+                                value: {
+                                    raw:
+                                        actual
+                                }
+                            });
+            
+                            activeDateControl = null;
+                            activeDateBeforeValue = null;
+                            activeDateTimer = null;
+                            return;
+                        }
+            
+                        attempts++;
+            
+                        if (attempts < 40) {
+            
+                            activeDateTimer =
+                                setTimeout(
+                                    poll,
+                                    100
+                                );
+            
+                        } else {
+            
+                            activeDateTimer = null;
+                        }
+                    };
+            
+                    activeDateTimer =
+                        setTimeout(
+                            poll,
+                            50
+                        );
+                }
+            
+            
+            
+                function checkedState(
+                    control) {
+            
+                    const element =
+                        control.nativeElement;
+            
+                    if (!element) {
+                        return null;
+                    }
+            
+                    if ('checked' in element) {
+            
+                        return !!element.checked;
+                    }
+            
+                    const aria =
+                        clean(
+                            element
+                                .getAttribute
+                                ?.('aria-checked')
+                        );
+            
+                    if (aria === 'true') {
+                        return true;
+                    }
+            
+                    if (aria === 'false') {
+                        return false;
+                    }
+            
+                    return null;
+                }
+            
+            
+            
+                /* =========================================================
+                   DIALOG CONTEXT
+                   ========================================================= */
+            
+                function dialogContext(
+                    control) {
+            
+                    const element =
+                        control.nativeElement;
+            
+                    const dialog =
+                        element
+                            ?.closest
+                            ?.(`
+                                [role="dialog"],
+                                [aria-modal="true"]
+                            `);
+            
+                    if (!dialog) {
+                        return null;
+                    }
+            
+                    return {
+                        type:
+                            'DIALOG',
+            
+                        name:
+                            clean(
+                                dialog
+                                    .getAttribute(
+                                        'aria-label'
+                                    ) ||
+            
+                                labelledBy(
+                                    dialog
+                                ) ||
+            
+                                dialog
+                                    .querySelector(
+                                        'h1,h2,h3,[role="heading"]'
+                                    )
+                                    ?.textContent
+                            ) ||
+                            'dialog'
+                    };
+                }
+            
+            
+            
+                /* =========================================================
+                   EVENT EMIT
+                   ========================================================= */
+            
+                function emit(
+                    event) {
+            
+                    const full = {
+            
+                        timestamp:
+                            Date.now(),
+            
+                        stage:
+                            currentStage,
+            
+                        url:
+                            location.href,
+            
+                        ...event
+                    };
+            
+                    window
+                        .__angularRecorderEvents
+                        .push(full);
+            
+                    console.log(
+                        PREFIX +
+                        JSON.stringify(full)
+                    );
+                }
+            
+            
+            
+                function baseEvent(
+                    control,
+                    actionType,
+                    typeOverride) {
+            
+                    return {
+            
+                        actionType,
+            
+                        inputType:
+                            typeOverride ||
+                            detectInputType(
+                                control
+                            ),
+            
+                        input:
+                            semanticInputName(
+                                control
+                            ),
+            
+                        identifyBy:
+                            identifyBy(
+                                control
+                            ),
+            
+                        context:
+                            dialogContext(
+                                control
+                            )
+                    };
+                }
+            
+            
+            
+                /* =========================================================
+                   INPUT NORMALIZATION
+                   ========================================================= */
+            
+                function editableAction(
+                    control) {
+            
+                    const type =
+                        detectInputType(
+                            control
+                        );
+            
+                    if (
+                        type ===
+                        'AUTOCOMPLETE' ||
+                        type ===
+                        'SEARCH'
+                    ) {
+            
+                        return 'SEARCH';
+                    }
+            
+                    if (
+                        type ===
+                        'DATE'
+                    ) {
+            
+                        return 'DATE_INPUT';
+                    }
+            
+                    return 'INPUT';
+                }
+            
+            
+            
+                function scheduleEditable(
+                    control) {
+            
+                    const element =
+                        control.nativeElement;
+            
+                    if (!element) {
+                        return;
+                    }
+            
+                    const oldTimer =
+                        timers.get(
+                            element
+                        );
+            
+                    if (oldTimer) {
+            
+                        clearTimeout(
+                            oldTimer
+                        );
+                    }
+            
+                    pending.set(
+                        element,
+                        {
+                            control,
+                            actionType:
+                                editableAction(
+                                    control
+                                )
+                        }
+                    );
+            
+                    /*
+                     * Capture final typed value,
+                     * not one event for every character.
+                     */
+                    const timer =
+                        setTimeout(
+                            () => {
+            
+                                const item =
+                                    pending.get(
+                                        element
+                                    );
+            
+                                if (!item) {
+                                    return;
+                                }
+            
+                                emit({
+                                    ...baseEvent(
+                                        item.control,
+                                        item.actionType
+                                    ),
+            
+                                    value: {
+                                        raw:
+                                            currentValue(
+                                                item.control
+                                            )
+                                    }
+                                });
+            
+                                pending.delete(
+                                    element
+                                );
+            
+                                timers.delete(
+                                    element
+                                );
+            
+                            },
+                            500
+                        );
+            
+                    timers.set(
+                        element,
+                        timer
+                    );
+                }
+            
+            
+            
+                function flushEditable(
+                    control) {
+            
+                    const element =
+                        control.nativeElement;
+            
+                    if (!element ||
+                        !pending.has(
+                            element
+                        )) {
+            
+                        return;
+                    }
+            
+                    const oldTimer =
+                        timers.get(
+                            element
+                        );
+            
+                    if (oldTimer) {
+            
+                        clearTimeout(
+                            oldTimer
+                        );
+                    }
+            
                     const item =
                         pending.get(
                             element
                         );
-
-                    if (!item) {
-                        return;
-                    }
-
+            
                     emit({
                         ...baseEvent(
                             item.control,
                             item.actionType
                         ),
-
+            
                         value: {
                             raw:
                                 currentValue(
@@ -1916,663 +2269,673 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
                                 )
                         }
                     });
-
+            
                     pending.delete(
                         element
                     );
-
+            
                     timers.delete(
                         element
                     );
-
-                },
-                500
-            );
-
-        timers.set(
-            element,
-            timer
-        );
-    }
-
-
-
-    function flushEditable(
-        control) {
-
-        const element =
-            control.nativeElement;
-
-        if (!element ||
-            !pending.has(
-                element
-            )) {
-
-            return;
-        }
-
-        const oldTimer =
-            timers.get(
-                element
-            );
-
-        if (oldTimer) {
-
-            clearTimeout(
-                oldTimer
-            );
-        }
-
-        const item =
-            pending.get(
-                element
-            );
-
-        emit({
-            ...baseEvent(
-                item.control,
-                item.actionType
-            ),
-
-            value: {
-                raw:
-                    currentValue(
-                        item.control
-                    )
-            }
-        });
-
-        pending.delete(
-            element
-        );
-
-        timers.delete(
-            element
-        );
-    }
-
-
-
-    /* =========================================================
-       INPUT EVENT
-       ========================================================= */
-
-    document.addEventListener(
-        'input',
-        event => {
-
-            const control =
-                resolveControl(
-                    event
-                );
-
-            const type =
-                detectInputType(
-                    control
-                );
-
-            if (
-                type ===
-                'CHECKBOX' ||
-
-                type ===
-                'RADIO' ||
-
-                type ===
-                'TOGGLE' ||
-
-                type ===
-                'FILE' ||
-
-                type ===
-                'SELECT'
-            ) {
-
-                return;
-            }
-
-            scheduleEditable(
-                control
-            );
-        },
-        true
-    );
-
-
-
-    /* =========================================================
-       CHANGE EVENT
-       ========================================================= */
-
-    document.addEventListener(
-        'change',
-        event => {
-
-            const control =
-                resolveControl(
-                    event
-                );
-
-            flushEditable(
-                control
-            );
-
-            const element =
-                control.nativeElement;
-
-            const type =
-                detectInputType(
-                    control
-                );
-
-
-
-            if (type === 'FILE') {
-
-                const files =
-                    element.files
-                        ? Array.from(
-                            element.files
-                        )
-                        : [];
-
-                emit({
-                    ...baseEvent(
-                        control,
-                        'FILE_UPLOAD',
-                        'FILE'
-                    ),
-
-                    value: {
-                        fileName:
-                            files.length
-                                ? files
-                                    .map(
-                                        f =>
-                                            f.name
-                                    )
-                                    .join(', ')
-                                : null
-                    }
-                });
-
-                return;
-            }
-
-
-
-            if (
-                type ===
-                'CHECKBOX' ||
-                type ===
-                'TOGGLE'
-            ) {
-
-                const checked =
-                    checkedState(
-                        control
-                    );
-
-                emit({
-                    ...baseEvent(
-                        control,
-                        checked
-                            ? 'CHECK'
-                            : 'UNCHECK',
-                        type
-                    ),
-
-                    value: {
-                        raw:
-                            currentValue(
-                                control
-                            ),
-
-                        checked
-                    }
-                });
-
-                return;
-            }
-
-
-
-            if (type === 'RADIO') {
-
-                const checked =
-                    checkedState(
-                        control
-                    );
-
-                if (checked === false) {
-                    return;
                 }
-
-                emit({
-                    ...baseEvent(
-                        control,
-                        'RADIO',
-                        'RADIO'
-                    ),
-
-                    value: {
-                        raw:
-                            currentValue(
+            
+            
+            
+                /* =========================================================
+                   INPUT EVENT
+                   ========================================================= */
+            
+                document.addEventListener(
+                    'input',
+                    event => {
+            
+                        const control =
+                            resolveControl(
+                                event
+                            );
+            
+                        const type =
+                            detectInputType(
                                 control
-                            ),
-
-                        selectedValue:
-                            currentValue(
-                                control
-                            ),
-
-                        selectedText:
-                            semanticInputName(
-                                control
-                            ),
-
-                        checked:
-                            true
-                    }
-                });
-
-                return;
-            }
-
-
-
-            if (
-                element &&
-                element
-                    .tagName
-                    ?.toLowerCase() ===
-                'select'
-            ) {
-
-                const option =
-                    element
-                        .selectedOptions
-                        ?.[0];
-
-                emit({
-                    ...baseEvent(
-                        control,
-                        'SELECT',
-                        'SELECT'
-                    ),
-
-                    value: {
-                        raw:
-                            clean(
-                                element.value
-                            ),
-
-                        selectedValue:
-                            clean(
-                                element.value
-                            ),
-
-                        selectedText:
-                            clean(
-                                option
-                                    ?.textContent
-                            )
-                    }
-                });
-
-                return;
-            }
-
-
-
-            emit({
-                ...baseEvent(
-                    control,
-                    editableAction(
-                        control
-                    )
-                ),
-
-                value: {
-                    raw:
-                        currentValue(
+                            );
+            
+                        if (
+                            type ===
+                            'CHECKBOX' ||
+            
+                            type ===
+                            'RADIO' ||
+            
+                            type ===
+                            'TOGGLE' ||
+            
+                            type ===
+                            'FILE' ||
+            
+                            type ===
+                            'SELECT'
+                        ) {
+            
+                            return;
+                        }
+            
+                        scheduleEditable(
                             control
-                        )
-                }
-            });
-        },
-        true
-    );
-
-
-
-    /* =========================================================
-       BLUR
-       ========================================================= */
-
-    document.addEventListener(
-        'focusout',
-        event => {
-
-            const control =
-                resolveControl(
-                    event
+                        );
+                    },
+                    true
                 );
-
-            flushEditable(
-                control
-            );
-        },
-        true
-    );
-
-
-
-    /* =========================================================
-       CLICK / OPTION / POPUP
-       ========================================================= */
-
-    document.addEventListener(
-        'click',
-        event => {
-
-            const control =
-                resolveControl(
-                    event
+            
+            
+            
+                /* =========================================================
+                   CHANGE EVENT
+                   ========================================================= */
+            
+                document.addEventListener(
+                    'change',
+                    event => {
+            
+                        const control =
+                            resolveControl(
+                                event
+                            );
+            
+                        flushEditable(
+                            control
+                        );
+            
+                        const element =
+                            control.nativeElement;
+            
+                        const type =
+                            detectInputType(
+                                control
+                            );
+            
+            
+            
+                        if (type === 'FILE') {
+            
+                            const files =
+                                element.files
+                                    ? Array.from(
+                                        element.files
+                                    )
+                                    : [];
+            
+                            emit({
+                                ...baseEvent(
+                                    control,
+                                    'FILE_UPLOAD',
+                                    'FILE'
+                                ),
+            
+                                value: {
+                                    fileName:
+                                        files.length
+                                            ? files
+                                                .map(
+                                                    f =>
+                                                        f.name
+                                                )
+                                                .join(', ')
+                                            : null
+                                }
+                            });
+            
+                            return;
+                        }
+            
+            
+            
+                        if (
+                            type ===
+                            'CHECKBOX' ||
+                            type ===
+                            'TOGGLE'
+                        ) {
+            
+                            const checked =
+                                checkedState(
+                                    control
+                                );
+            
+                            emit({
+                                ...baseEvent(
+                                    control,
+                                    checked
+                                        ? 'CHECK'
+                                        : 'UNCHECK',
+                                    type
+                                ),
+            
+                                value: {
+                                    raw:
+                                        currentValue(
+                                            control
+                                        ),
+            
+                                    checked
+                                }
+                            });
+            
+                            return;
+                        }
+            
+            
+            
+                        if (type === 'RADIO') {
+            
+                            const checked =
+                                checkedState(
+                                    control
+                                );
+            
+                            if (checked === false) {
+                                return;
+                            }
+            
+                            emit({
+                                ...baseEvent(
+                                    control,
+                                    'RADIO',
+                                    'RADIO'
+                                ),
+            
+                                value: {
+                                    raw:
+                                        currentValue(
+                                            control
+                                        ),
+            
+                                    selectedValue:
+                                        currentValue(
+                                            control
+                                        ),
+            
+                                    selectedText:
+                                        semanticInputName(
+                                            control
+                                        ),
+            
+                                    checked:
+                                        true
+                                }
+                            });
+            
+                            return;
+                        }
+            
+            
+            
+                        if (type === 'DATE') {
+            
+                            const actual =
+                                currentValue(
+                                    control
+                                );
+            
+                            if (actual) {
+            
+                                emit({
+                                    ...baseEvent(
+                                        control,
+                                        'DATE_INPUT',
+                                        'DATE'
+                                    ),
+            
+                                    value: {
+                                        raw:
+                                            actual
+                                    }
+                                });
+                            }
+            
+                            activeDateControl = null;
+                            activeDateBeforeValue = null;
+            
+                            if (activeDateTimer) {
+                                clearTimeout(activeDateTimer);
+                                activeDateTimer = null;
+                            }
+            
+                            return;
+                        }
+            
+            
+            
+                        if (
+                            element &&
+                            element
+                                .tagName
+                                ?.toLowerCase() ===
+                            'select'
+                        ) {
+            
+                            const option =
+                                element
+                                    .selectedOptions
+                                    ?.[0];
+            
+                            emit({
+                                ...baseEvent(
+                                    control,
+                                    'SELECT',
+                                    'SELECT'
+                                ),
+            
+                                value: {
+                                    raw:
+                                        clean(
+                                            element.value
+                                        ),
+            
+                                    selectedValue:
+                                        clean(
+                                            element.value
+                                        ),
+            
+                                    selectedText:
+                                        clean(
+                                            option
+                                                ?.textContent
+                                        )
+                                }
+                            });
+            
+                            return;
+                        }
+            
+            
+            
+                        emit({
+                            ...baseEvent(
+                                control,
+                                editableAction(
+                                    control
+                                )
+                            ),
+            
+                            value: {
+                                raw:
+                                    currentValue(
+                                        control
+                                    )
+                            }
+                        });
+                    },
+                    true
                 );
-
-            const element =
-                control.nativeElement;
-
-            if (!element) {
-                return;
-            }
-
-            const type =
-                detectInputType(
-                    control
+            
+            
+            
+                /* =========================================================
+                   BLUR
+                   ========================================================= */
+            
+                document.addEventListener(
+                    'focusout',
+                    event => {
+            
+                        const control =
+                            resolveControl(
+                                event
+                            );
+            
+                        flushEditable(
+                            control
+                        );
+                    },
+                    true
                 );
-
-            const role =
-                clean(
-                    element
-                        .getAttribute
-                        ?.('role')
-                );
-
-
-
-            /*
-             * Input focus/placeholder click
-             * is NOT a separate event.
-             */
-            if (
-                type === 'TEXT' ||
-                type === 'PASSWORD' ||
-                type === 'EMAIL' ||
-                type === 'NUMBER' ||
-                type === 'TEL' ||
-                type === 'URL' ||
-                type === 'SEARCH' ||
-                type === 'TEXTAREA' ||
-                type === 'AUTOCOMPLETE'
-            ) {
-
-                return;
-            }
-
-
-
-            /*
-             * Change event will capture these.
-             */
-            if (
-                type === 'CHECKBOX' ||
-                type === 'RADIO' ||
-                type === 'TOGGLE'
-            ) {
-
-                return;
-            }
-
-
-
-            /*
-             * Generic overlay/list option.
-             */
-            if (
-                role === 'option' ||
-                type === 'OPTION'
-            ) {
-
-                const selectedText =
-                    shortText(
-                        element
-                    );
-
-                emit({
-                    ...baseEvent(
-                        control,
-                        'SELECT',
-                        'OPTION'
-                    ),
-
-                    value: {
-
-                        raw:
-                            selectedText,
-
-                        selectedValue:
+            
+            
+            
+                /* =========================================================
+                   CLICK / OPTION / POPUP
+                   ========================================================= */
+            
+                document.addEventListener(
+                    'click',
+                    event => {
+            
+                        const control =
+                            resolveControl(
+                                event
+                            );
+            
+                        const element =
+                            control.nativeElement;
+            
+                        if (!element) {
+                            return;
+                        }
+            
+                        const type =
+                            detectInputType(
+                                control
+                            );
+            
+                        const role =
                             clean(
                                 element
                                     .getAttribute
-                                    ?.('value')
-                            ) ||
-                            selectedText,
-
-                        selectedText:
-                            selectedText
+                                    ?.('role')
+                            );
+            
+            
+            
+                        /*
+                         * CUSTOM DATEPICKER
+                         *
+                         * The trigger and the calendar overlay can be separate Angular
+                         * components.  Keep the parent logical date control and emit only
+                         * when its actual input value changes.
+                         */
+                        if (
+                            type === 'DATE' ||
+                            isDateLikeControl(control)
+                        ) {
+            
+                            startDateValueWatch(
+                                control,
+                                currentValue(control)
+                            );
+            
+                            return;
+                        }
+            
+                        /*
+                         * If a datepicker overlay is currently active, a calendar cell
+                         * click may resolve to mt-calendar / button / gridcell rather than
+                         * the original form field.  Do not emit that calendar click as a
+                         * separate action; instead continue watching the original date
+                         * field for its final selected value.
+                         */
+                        if (activeDateControl) {
+            
+                            startDateValueWatch(
+                                activeDateControl,
+                                activeDateBeforeValue
+                            );
+            
+                            return;
+                        }
+            
+            
+            
+                        /*
+                         * Input focus/placeholder click
+                         * is NOT a separate event.
+                         */
+                        if (
+                            type === 'TEXT' ||
+                            type === 'PASSWORD' ||
+                            type === 'EMAIL' ||
+                            type === 'NUMBER' ||
+                            type === 'TEL' ||
+                            type === 'URL' ||
+                            type === 'SEARCH' ||
+                            type === 'TEXTAREA' ||
+                            type === 'AUTOCOMPLETE'
+                        ) {
+            
+                            return;
+                        }
+            
+            
+            
+                        /*
+                         * Change event will capture these.
+                         */
+                        if (
+                            type === 'CHECKBOX' ||
+                            type === 'RADIO' ||
+                            type === 'TOGGLE'
+                        ) {
+            
+                            return;
+                        }
+            
+            
+            
+                        /*
+                         * Generic overlay/list option.
+                         */
+                        if (
+                            role === 'option' ||
+                            type === 'OPTION'
+                        ) {
+            
+                            const selectedText =
+                                shortText(
+                                    element
+                                );
+            
+                            emit({
+                                ...baseEvent(
+                                    control,
+                                    'SELECT',
+                                    'OPTION'
+                                ),
+            
+                                value: {
+            
+                                    raw:
+                                        selectedText,
+            
+                                    selectedValue:
+                                        clean(
+                                            element
+                                                .getAttribute
+                                                ?.('value')
+                                        ) ||
+                                        selectedText,
+            
+                                    selectedText:
+                                        selectedText
+                                },
+            
+                                wait: {
+                                    type:
+                                        'OPTION_VISIBLE',
+            
+                                    target:
+                                        selectedText,
+            
+                                    role:
+                                        'option'
+                                }
+                            });
+            
+                            return;
+                        }
+            
+            
+            
+                        const hasPopup =
+                            clean(
+                                element
+                                    .getAttribute
+                                    ?.('aria-haspopup')
+                            );
+            
+                        const controls =
+                            clean(
+                                element
+                                    .getAttribute
+                                    ?.('aria-controls')
+                            );
+            
+            
+            
+                        emit({
+                            ...baseEvent(
+                                control,
+                                hasPopup ||
+                                controls
+                                    ? 'OPEN_POPUP'
+                                    : 'CLICK'
+                            ),
+            
+                            value: {
+                                raw:
+                                    shortText(
+                                        element
+                                    ) ||
+                                    semanticInputName(
+                                        control
+                                    )
+                            }
+                        });
                     },
-
-                    wait: {
-                        type:
-                            'OPTION_VISIBLE',
-
-                        target:
-                            selectedText,
-
-                        role:
-                            'option'
+                    true
+                );
+            
+            
+            
+                /* =========================================================
+                   KEYBOARD
+                   ========================================================= */
+            
+                document.addEventListener(
+                    'keydown',
+                    event => {
+            
+                        if (
+                            ![
+                                'Enter',
+                                'Tab',
+                                'Escape'
+                            ]
+                            .includes(
+                                event.key
+                            )
+                        ) {
+            
+                            return;
+                        }
+            
+                        const control =
+                            resolveControl(
+                                event
+                            );
+            
+                        emit({
+                            ...baseEvent(
+                                control,
+                                'KEY'
+                            ),
+            
+                            value: {
+                                raw:
+                                    event.key
+                            }
+                        });
+                    },
+                    true
+                );
+            
+            
+            
+                /* =========================================================
+                   ANGULAR SPA STAGE TRACKING
+                   ========================================================= */
+            
+                function checkStageChange() {
+            
+                    setTimeout(
+                        () => {
+            
+                            if (
+                                location.href !==
+                                lastUrl
+                            ) {
+            
+                                lastUrl =
+                                    location.href;
+            
+                                currentStage++;
+                            }
+            
+                        },
+                        0
+                    );
+                }
+            
+            
+            
+                const originalPushState =
+                    history.pushState
+                        .bind(history);
+            
+                history.pushState =
+                    function(...args) {
+            
+                        const result =
+                            originalPushState(
+                                ...args
+                            );
+            
+                        checkStageChange();
+            
+                        return result;
+                    };
+            
+            
+            
+                const originalReplaceState =
+                    history.replaceState
+                        .bind(history);
+            
+                history.replaceState =
+                    function(...args) {
+            
+                        const result =
+                            originalReplaceState(
+                                ...args
+                            );
+            
+                        checkStageChange();
+            
+                        return result;
+                    };
+            
+            
+            
+                window.addEventListener(
+                    'popstate',
+                    checkStageChange,
+                    true
+                );
+            
+            
+            
+                /* =========================================================
+                   DYNAMIC ANGULAR / OVERLAY DOM
+                   ========================================================= */
+            
+                const observer =
+                    new MutationObserver(
+                        () => {
+            
+                            lastMutationAt =
+                                Date.now();
+                        }
+                    );
+            
+                observer.observe(
+                    document.documentElement,
+                    {
+                        childList:
+                            true,
+            
+                        subtree:
+                            true
                     }
-                });
-
-                return;
-            }
-
-
-
-            const hasPopup =
-                clean(
-                    element
-                        .getAttribute
-                        ?.('aria-haspopup')
                 );
-
-            const controls =
-                clean(
-                    element
-                        .getAttribute
-                        ?.('aria-controls')
-                );
-
-
-
-            emit({
-                ...baseEvent(
-                    control,
-                    hasPopup ||
-                    controls
-                        ? 'OPEN_POPUP'
-                        : 'CLICK'
-                ),
-
-                value: {
-                    raw:
-                        shortText(
-                            element
-                        ) ||
-                        semanticInputName(
-                            control
-                        )
-                }
-            });
-        },
-        true
-    );
-
-
-
-    /* =========================================================
-       KEYBOARD
-       ========================================================= */
-
-    document.addEventListener(
-        'keydown',
-        event => {
-
-            if (
-                ![
-                    'Enter',
-                    'Tab',
-                    'Escape'
-                ]
-                .includes(
-                    event.key
-                )
-            ) {
-
-                return;
-            }
-
-            const control =
-                resolveControl(
-                    event
-                );
-
-            emit({
-                ...baseEvent(
-                    control,
-                    'KEY'
-                ),
-
-                value: {
-                    raw:
-                        event.key
-                }
-            });
-        },
-        true
-    );
-
-
-
-    /* =========================================================
-       ANGULAR SPA STAGE TRACKING
-       ========================================================= */
-
-    function checkStageChange() {
-
-        setTimeout(
-            () => {
-
-                if (
-                    location.href !==
-                    lastUrl
-                ) {
-
-                    lastUrl =
-                        location.href;
-
-                    currentStage++;
-                }
-
-            },
-            0
-        );
-    }
-
-
-
-    const originalPushState =
-        history.pushState
-            .bind(history);
-
-    history.pushState =
-        function(...args) {
-
-            const result =
-                originalPushState(
-                    ...args
-                );
-
-            checkStageChange();
-
-            return result;
-        };
-
-
-
-    const originalReplaceState =
-        history.replaceState
-            .bind(history);
-
-    history.replaceState =
-        function(...args) {
-
-            const result =
-                originalReplaceState(
-                    ...args
-                );
-
-            checkStageChange();
-
-            return result;
-        };
-
-
-
-    window.addEventListener(
-        'popstate',
-        checkStageChange,
-        true
-    );
-
-
-
-    /* =========================================================
-       DYNAMIC ANGULAR / OVERLAY DOM
-       ========================================================= */
-
-    const observer =
-        new MutationObserver(
-            () => {
-
-                lastMutationAt =
-                    Date.now();
-            }
-        );
-
-    observer.observe(
-        document.documentElement,
-        {
-            childList:
-                true,
-
-            subtree:
-                true
-        }
-    );
-
-})();
-""";
+            
+            })();
+            """;
 }

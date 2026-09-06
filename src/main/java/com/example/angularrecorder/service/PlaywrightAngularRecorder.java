@@ -5,16 +5,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.*;
 
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class PlaywrightAngularRecorder implements AutoCloseable {
 
-    private static final String PREFIX = "__ANGULAR_RECORDER_EVENT__";
+    private static final String PREFIX =
+            "__ANGULAR_RECORDER_EVENT__";
 
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final List<JsonNode> rawEvents = new CopyOnWriteArrayList<>();
+    private final ObjectMapper mapper =
+            new ObjectMapper();
+
+    private final List<JsonNode> rawEvents =
+            new CopyOnWriteArrayList<>();
 
     private Playwright playwright;
     private Browser browser;
@@ -22,6 +25,7 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
     private Page page;
 
     public void open(String url) {
+
         playwright = Playwright.create();
 
         browser = playwright.chromium().launch(
@@ -31,205 +35,427 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
         context = browser.newContext();
 
+        /*
+         * Very important:
+         * installs recorder before every Angular page/reload/navigation.
+         */
         context.addInitScript(RECORDING_SCRIPT);
 
         page = context.newPage();
 
         page.onConsoleMessage(message -> {
-            String text = message.text();
-            if (text != null && text.startsWith(PREFIX)) {
-                String json = text.substring(PREFIX.length());
-                try {
-                    JsonNode node = mapper.readTree(json);
-                    rawEvents.add(node);
 
-                    System.out.printf(
-                            "[RECORDED] %-18s input=%s value=%s%n",
-                            text(node, "actionType"),
-                            text(node, "input"),
-                            valuePreview(node)
-                    );
-                } catch (Exception ex) {
-                    System.err.println("Unable to parse recorder event: " + ex.getMessage());
-                }
+            String text = message.text();
+
+            if (text == null ||
+                    !text.startsWith(PREFIX)) {
+                return;
+            }
+
+            String json =
+                    text.substring(PREFIX.length());
+
+            try {
+
+                JsonNode node =
+                        mapper.readTree(json);
+
+                rawEvents.add(node);
+
+                System.out.printf(
+                        "[RECORDED] stage=%s action=%-20s input=%s value=%s%n",
+                        node.path("stage").asText(),
+                        text(node, "actionType"),
+                        text(node, "input"),
+                        valuePreview(node)
+                );
+
+            } catch (Exception ex) {
+
+                System.err.println(
+                        "Unable to parse recorder event: "
+                                + ex.getMessage()
+                );
             }
         });
 
         page.navigate(url);
+
         page.waitForLoadState();
 
-        System.out.println("Angular recorder opened: " + url);
-        System.out.println("Use the browser normally.");
-        System.out.println("Press ENTER in this terminal when recording is complete.");
+        System.out.println(
+                "Angular recorder opened: " + url
+        );
+
+        System.out.println(
+                "Use application normally."
+        );
+
+        System.out.println(
+                "Press ENTER when recording is complete."
+        );
     }
 
     public List<RecordedEvent> readEvents() {
+
         mergeFallbackEvents();
 
-        List<RecordedEvent> result = new ArrayList<>();
-        long seq = 1;
+        List<RecordedEvent> result =
+                new ArrayList<>();
 
-        for (JsonNode n : rawEvents) {
-            result.add(toEvent(seq++, n));
-        }
+        long sequence = 1;
 
-        return new EventNormalizer().normalize(result);
-    }
+        for (JsonNode node : rawEvents) {
 
-    private RecordedEvent toEvent(long sequence, JsonNode n) {
-        IdentifyBy identifyBy = null;
-        JsonNode identifyNode = n.get("identifyBy");
-        if (identifyNode != null && !identifyNode.isNull()) {
-            Map<String, String> candidates = new LinkedHashMap<>();
-
-            JsonNode candidateNode = identifyNode.get("candidates");
-            if (candidateNode != null && candidateNode.isObject()) {
-                candidateNode.fields().forEachRemaining(e -> {
-                    String value = e.getValue().asText("");
-                    if (!value.isBlank()) {
-                        candidates.put(e.getKey(), value);
-                    }
-                });
-            }
-
-            identifyBy = new IdentifyBy(
-                    text(identifyNode, "preferredStrategy"),
-                    text(identifyNode, "preferredValue"),
-                    candidates
+            result.add(
+                    toEvent(
+                            sequence++,
+                            node
+                    )
             );
         }
 
+        return new EventNormalizer()
+                .normalize(result);
+    }
+
+    private RecordedEvent toEvent(
+            long sequence,
+            JsonNode node) {
+
+        IdentifyBy identifyBy = null;
+
+        JsonNode identifyNode =
+                node.get("identifyBy");
+
+        if (identifyNode != null &&
+                !identifyNode.isNull()) {
+
+            Map<String, String> candidates =
+                    new LinkedHashMap<>();
+
+            JsonNode candidateNode =
+                    identifyNode.get("candidates");
+
+            if (candidateNode != null &&
+                    candidateNode.isObject()) {
+
+                candidateNode
+                        .fields()
+                        .forEachRemaining(entry -> {
+
+                            String value =
+                                    entry
+                                            .getValue()
+                                            .asText("");
+
+                            if (!value.isBlank()) {
+
+                                candidates.put(
+                                        entry.getKey(),
+                                        value
+                                );
+                            }
+                        });
+            }
+
+            identifyBy =
+                    new IdentifyBy(
+                            text(
+                                    identifyNode,
+                                    "preferredStrategy"
+                            ),
+                            text(
+                                    identifyNode,
+                                    "preferredValue"
+                            ),
+                            candidates
+                    );
+        }
+
         RecordedValue value = null;
-        JsonNode valueNode = n.get("value");
-        if (valueNode != null && !valueNode.isNull()) {
+
+        JsonNode valueNode =
+                node.get("value");
+
+        if (valueNode != null &&
+                !valueNode.isNull()) {
+
             if (valueNode.isTextual()) {
-                value = new RecordedValue(
-                        valueNode.asText(), null, null, null, null, null
-                );
+
+                value =
+                        new RecordedValue(
+                                valueNode.asText(),
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                        );
+
             } else {
-                value = new RecordedValue(
-                        text(valueNode, "raw"),
-                        text(valueNode, "searchText"),
-                        text(valueNode, "selectedValue"),
-                        text(valueNode, "selectedText"),
-                        text(valueNode, "fileName"),
-                        bool(valueNode, "checked")
-                );
+
+                value =
+                        new RecordedValue(
+                                text(
+                                        valueNode,
+                                        "raw"
+                                ),
+                                text(
+                                        valueNode,
+                                        "searchText"
+                                ),
+                                text(
+                                        valueNode,
+                                        "selectedValue"
+                                ),
+                                text(
+                                        valueNode,
+                                        "selectedText"
+                                ),
+                                text(
+                                        valueNode,
+                                        "fileName"
+                                ),
+                                bool(
+                                        valueNode,
+                                        "checked"
+                                )
+                        );
             }
         }
 
         ContextInfo contextInfo = null;
-        JsonNode contextNode = n.get("context");
-        if (contextNode != null && !contextNode.isNull()) {
-            contextInfo = new ContextInfo(
-                    text(contextNode, "type"),
-                    text(contextNode, "name")
-            );
+
+        JsonNode contextNode =
+                node.get("context");
+
+        if (contextNode != null &&
+                !contextNode.isNull()) {
+
+            contextInfo =
+                    new ContextInfo(
+                            text(
+                                    contextNode,
+                                    "type"
+                            ),
+                            text(
+                                    contextNode,
+                                    "name"
+                            )
+                    );
         }
 
         WaitInfo waitInfo = null;
-        JsonNode waitNode = n.get("waitInfo");
-        if (waitNode != null && !waitNode.isNull()) {
-            waitInfo = new WaitInfo(
-                    text(waitNode, "type"),
-                    text(waitNode, "target"),
-                    text(waitNode, "role")
-            );
+
+        JsonNode waitNode =
+                node.get("wait");
+
+        if (waitNode != null &&
+                !waitNode.isNull()) {
+
+            waitInfo =
+                    new WaitInfo(
+                            text(
+                                    waitNode,
+                                    "type"
+                            ),
+                            text(
+                                    waitNode,
+                                    "target"
+                            ),
+                            text(
+                                    waitNode,
+                                    "role"
+                            )
+                    );
         }
 
         return new RecordedEvent(
                 sequence,
-                n.path("timestamp").asLong(System.currentTimeMillis()),
-                n.path("stage").asLong(1L),
-                text(n, "actionType"),
-                text(n, "inputType"),
-                text(n, "input"),
+                node.path("timestamp")
+                        .asLong(
+                                System.currentTimeMillis()
+                        ),
+                node.path("stage")
+                        .asLong(1L),
+                text(
+                        node,
+                        "actionType"
+                ),
+                text(
+                        node,
+                        "inputType"
+                ),
+                text(
+                        node,
+                        "input"
+                ),
                 identifyBy,
                 value,
                 contextInfo,
                 waitInfo,
-                text(n, "url")
+                text(
+                        node,
+                        "url"
+                )
         );
     }
 
     private void mergeFallbackEvents() {
-        if (page == null || page.isClosed()) {
+
+        if (page == null ||
+                page.isClosed()) {
             return;
         }
 
         try {
-            Object data = page.evaluate("() => window.__angularRecorderEvents || []");
-            JsonNode array = mapper.valueToTree(data);
+
+            Object data =
+                    page.evaluate(
+                            "() => window.__angularRecorderEvents || []"
+                    );
+
+            JsonNode array =
+                    mapper.valueToTree(data);
+
             if (!array.isArray()) {
                 return;
             }
 
-            Set<String> fingerprints = new HashSet<>();
-            for (JsonNode e : rawEvents) {
-                fingerprints.add(fingerprint(e));
+            Set<String> fingerprints =
+                    new HashSet<>();
+
+            for (JsonNode event : rawEvents) {
+
+                fingerprints.add(
+                        fingerprint(event)
+                );
             }
 
-            for (JsonNode e : array) {
-                if (fingerprints.add(fingerprint(e))) {
-                    rawEvents.add(e);
+            for (JsonNode event : array) {
+
+                if (fingerprints.add(
+                        fingerprint(event))) {
+
+                    rawEvents.add(event);
                 }
             }
+
         } catch (Exception ignored) {
         }
     }
 
-    private String fingerprint(JsonNode n) {
-        return text(n, "timestamp") + "|"
-                + text(n, "actionType") + "|"
-                + text(n, "input") + "|"
-                + valuePreview(n);
+    private String fingerprint(
+            JsonNode node) {
+
+        return node.path("timestamp").asText()
+                + "|"
+                + text(
+                node,
+                "actionType"
+        )
+                + "|"
+                + text(
+                node,
+                "input"
+        )
+                + "|"
+                + valuePreview(node);
     }
 
-    private String valuePreview(JsonNode n) {
-        JsonNode v = n.get("value");
-        if (v == null || v.isNull()) {
+    private String valuePreview(
+            JsonNode node) {
+
+        JsonNode value =
+                node.get("value");
+
+        if (value == null ||
+                value.isNull()) {
             return "";
         }
-        if (v.isTextual()) {
-            return v.asText();
+
+        if (value.isTextual()) {
+            return value.asText();
         }
-        String[] names = {"raw", "searchText", "selectedValue", "selectedText", "fileName"};
-        for (String name : names) {
-            String value = text(v, name);
-            if (value != null && !value.isBlank()) {
-                return value;
+
+        String[] fields = {
+                "raw",
+                "searchText",
+                "selectedValue",
+                "selectedText",
+                "fileName"
+        };
+
+        for (String field : fields) {
+
+            String result =
+                    text(
+                            value,
+                            field
+                    );
+
+            if (result != null &&
+                    !result.isBlank()) {
+
+                return result;
             }
         }
+
         return "";
     }
 
-    private String text(JsonNode node, String name) {
+    private String text(
+            JsonNode node,
+            String name) {
+
         if (node == null) {
             return null;
         }
-        JsonNode child = node.get(name);
-        if (child == null || child.isNull()) {
+
+        JsonNode child =
+                node.get(name);
+
+        if (child == null ||
+                child.isNull()) {
             return null;
         }
-        String value = child.asText();
-        return value.isBlank() ? null : value;
+
+        String value =
+                child.asText();
+
+        return value.isBlank()
+                ? null
+                : value;
     }
 
-    private Boolean bool(JsonNode node, String name) {
-        if (node == null || !node.has(name) || node.get(name).isNull()) {
+    private Boolean bool(
+            JsonNode node,
+            String name) {
+
+        if (node == null ||
+                !node.has(name) ||
+                node.get(name).isNull()) {
+
             return null;
         }
-        return node.get(name).asBoolean();
+
+        return node
+                .get(name)
+                .asBoolean();
     }
 
     @Override
     public void close() {
+
         if (context != null) {
             context.close();
         }
+
         if (browser != null) {
             browser.close();
         }
+
         if (playwright != null) {
             playwright.close();
         }
@@ -237,770 +463,2116 @@ public class PlaywrightAngularRecorder implements AutoCloseable {
 
     private static final String RECORDING_SCRIPT = """
 (() => {
-  if (window.__angularRecorderInstalled) return;
-  window.__angularRecorderInstalled = true;
-  window.__angularRecorderEvents = [];
 
-  const PREFIX = '__ANGULAR_RECORDER_EVENT__';
-  const timers = new WeakMap();
-  const pending = new WeakMap();
-  let currentStage = 1;
-  let pageBusy = false;
-  let lastUrl = location.href;
-  let lastMutationAt = Date.now();
-
-  function markBusy() {
-    pageBusy = true;
-  }
-
-  function markPotentialStageChange() {
-    markBusy();
-    setTimeout(() => {
-      if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        currentStage++;
-      }
-    }, 0);
-  }
-
-  function angularStable() {
-    try {
-      if (window.getAllAngularTestabilities) {
-        const testabilities = window.getAllAngularTestabilities();
-        if (testabilities && testabilities.length) {
-          return testabilities.every(t => t.isStable());
-        }
-      }
-    } catch (_) {}
-    return true;
-  }
-
-  function documentReady() {
-    return document.readyState === 'complete';
-  }
-
-  function visuallyBusy() {
-    try {
-      return !!document.querySelector(
-        '[aria-busy="true"],' +
-        '.mat-mdc-progress-spinner,' +
-        '.mat-progress-spinner,' +
-        '.mat-mdc-progress-bar,' +
-        '.mat-progress-bar,' +
-        '.p-progress-spinner,' +
-        '.p-progressbar,' +
-        '[class*="loading"][style*="display: block"]'
-      );
-    } catch (_) {
-      return false;
-    }
-  }
-
-  async function waitForPageReady(timeoutMs = 30000) {
-    const started = Date.now();
-    let stableSince = 0;
-
-    while (Date.now() - started < timeoutMs) {
-      const domStable = (Date.now() - lastMutationAt) >= 350;
-      const ready = documentReady() && angularStable() && !visuallyBusy() && domStable;
-
-      if (ready) {
-        if (!stableSince) stableSince = Date.now();
-        if (Date.now() - stableSince >= 300) {
-          pageBusy = false;
-          return true;
-        }
-      } else {
-        stableSince = 0;
-      }
-
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    pageBusy = false;
-    return false;
-  }
-
-  async function emitWhenReady(event) {
-    if (pageBusy) {
-      await waitForPageReady();
-    }
-
-    emit(event);
-  }
-
-
-  function clean(v) {
-    if (v == null) return null;
-    const s = String(v).replace(/\\s+/g, ' ').trim();
-    return s || null;
-  }
-
-  function shortText(el) {
-    if (!el) return null;
-    const txt = clean(el.innerText || el.textContent);
-    if (!txt || txt.length > 160) return null;
-    return txt;
-  }
-
-  function eventElement(event) {
-    const path = event && event.composedPath ? event.composedPath() : [];
-    for (const item of path) {
-      if (item && item.nodeType === Node.ELEMENT_NODE) return item;
-    }
-    return event ? event.target : null;
-  }
-
-  function closestMeaningful(el) {
-    if (!el || !el.closest) return el;
-
-    return el.closest([
-      'input',
-      'textarea',
-      'select',
-      'button',
-      'a',
-      '[contenteditable="true"]',
-      '[role="textbox"]',
-      '[role="combobox"]',
-      '[role="searchbox"]',
-      '[role="checkbox"]',
-      '[role="radio"]',
-      '[role="switch"]',
-      '[role="option"]',
-      '[role="button"]',
-      '[role="link"]',
-      '[role="menuitem"]',
-      '[role="tab"]',
-      '[role="slider"]',
-      '[role="spinbutton"]',
-      '[formControlName]',
-      '[ngModel]',
-      '[name]'
-    ].join(',')) || el;
-  }
-
-  function labelledBy(el) {
-    if (!el || !el.getAttribute) return null;
-    const ids = clean(el.getAttribute('aria-labelledby'));
-    if (!ids) return null;
-
-    return clean(ids.split(/\\s+/)
-      .map(id => document.getElementById(id))
-      .filter(Boolean)
-      .map(x => x.innerText || x.textContent)
-      .join(' '));
-  }
-
-  function associatedLabel(el) {
-    if (!el) return null;
-
-    if (el.labels && el.labels.length) {
-      const v = clean(Array.from(el.labels)
-        .map(x => x.innerText || x.textContent)
-        .join(' '));
-      if (v) return v;
-    }
-
-    const id = clean(el.id);
-    if (id) {
-      try {
-        const lbl = document.querySelector(`label[for="${CSS.escape(id)}"]`);
-        if (lbl) {
-          const v = clean(lbl.innerText || lbl.textContent);
-          if (v) return v;
-        }
-      } catch (_) {}
-    }
-
-    const wrapping = el.closest && el.closest('label');
-    if (wrapping) {
-      const v = clean(wrapping.innerText || wrapping.textContent);
-      if (v) return v;
-    }
-
-    const ariaLabelled = labelledBy(el);
-    if (ariaLabelled) return ariaLabelled;
-
-    const wrappers = [
-      '.mat-mdc-form-field',
-      '.mat-form-field',
-      '.p-field',
-      '.p-float-label',
-      '.form-group',
-      '.form-field',
-      '.field',
-      '.input-group',
-      '[class*="form-field"]',
-      '[class*="field"]'
-    ];
-
-    for (const selector of wrappers) {
-      const wrapper = el.closest && el.closest(selector);
-      if (!wrapper) continue;
-
-      const label = wrapper.querySelector(
-        'label,mat-label,.mat-mdc-floating-label,.mat-form-field-label,' +
-        '.p-float-label label,[class*="label"]'
-      );
-
-      if (label) {
-        const v = clean(label.innerText || label.textContent);
-        if (v && v.length <= 160) return v;
-      }
-    }
-
-    return null;
-  }
-
-  function angularFormControlName(el) {
-    if (!el || !el.getAttribute) return null;
-    return clean(
-      el.getAttribute('formControlName') ||
-      el.getAttribute('formcontrolname') ||
-      el.getAttribute('ng-reflect-name')
-    );
-  }
-
-  function accessibleName(el) {
-    if (!el) return null;
-
-    return clean(
-      associatedLabel(el) ||
-      el.getAttribute?.('aria-label') ||
-      labelledBy(el) ||
-      el.getAttribute?.('title') ||
-      el.getAttribute?.('placeholder')
-    );
-  }
-
-  function semanticInputName(el) {
-    if (!el) return 'unnamed';
-
-    const role = clean(el.getAttribute?.('role'));
-    const tag = (el.tagName || '').toLowerCase();
-    const type = clean(el.getAttribute?.('type'));
-
-    const textAllowed =
-      tag === 'button' ||
-      tag === 'a' ||
-      role === 'button' ||
-      role === 'link' ||
-      role === 'option' ||
-      role === 'radio' ||
-      role === 'checkbox' ||
-      role === 'switch' ||
-      role === 'menuitem';
-
-    // Placeholder is only a final fallback for semantic identity.
-    // It remains inside identifyBy.candidates, but should not create its own event.
-    return clean(
-      associatedLabel(el) ||
-      el.getAttribute?.('aria-label') ||
-      labelledBy(el) ||
-      angularFormControlName(el) ||
-      el.getAttribute?.('name') ||
-      el.id ||
-      (textAllowed ? shortText(el) : null) ||
-      el.getAttribute?.('placeholder') ||
-      type ||
-      tag
-    ) || 'unnamed';
-  }
-
-  function candidates(el) {
-    const result = {};
-
-    const label = associatedLabel(el);
-    const ariaLabel = clean(el.getAttribute?.('aria-label'));
-    const a11y = accessibleName(el);
-    const formControlName = angularFormControlName(el);
-    const name = clean(el.getAttribute?.('name'));
-    const id = clean(el.id);
-    const role = clean(el.getAttribute?.('role'));
-    const placeholder = clean(el.getAttribute?.('placeholder'));
-    const testId = clean(
-      el.getAttribute?.('data-testid') ||
-      el.getAttribute?.('data-test') ||
-      el.getAttribute?.('data-cy')
-    );
-    const text = shortText(el);
-
-    if (label) result.LABEL = label;
-    if (ariaLabel) result.ARIA_LABEL = ariaLabel;
-    if (a11y) result.ACCESSIBLE_NAME = a11y;
-    if (formControlName) result.FORM_CONTROL_NAME = formControlName;
-    if (name) result.NAME = name;
-    if (id) result.ID = id;
-    if (role) result.ROLE = role;
-    if (placeholder) result.PLACEHOLDER = placeholder;
-    if (testId) result.DATA_TESTID = testId;
-    if (text) result.TEXT = text;
-
-    if ((el.tagName || '').toLowerCase() === 'input') {
-      const type = clean(el.getAttribute('type'));
-      if (type) result.HTML_INPUT_TYPE = type;
-    }
-
-    return result;
-  }
-
-  function identifyBy(el) {
-    const c = candidates(el);
-    const input = semanticInputName(el);
-
-    const priority = [
-      'LABEL',
-      'ARIA_LABEL',
-      'ACCESSIBLE_NAME',
-      'FORM_CONTROL_NAME',
-      'NAME',
-      'ID',
-      'ROLE',
-      'PLACEHOLDER',
-      'DATA_TESTID',
-      'TEXT'
-    ];
-
-    for (const strategy of priority) {
-      if (!c[strategy]) continue;
-
-      if (strategy === 'LABEL' ||
-          strategy === 'ARIA_LABEL' ||
-          strategy === 'ACCESSIBLE_NAME') {
-        if (clean(c[strategy]) === clean(input)) {
-          return {
-            preferredStrategy: strategy,
-            preferredValue: c[strategy],
-            candidates: c
-          };
-        }
-      }
-    }
-
-    for (const strategy of priority) {
-      if (c[strategy]) {
-        return {
-          preferredStrategy: strategy,
-          preferredValue: c[strategy],
-          candidates: c
-        };
-      }
-    }
-
-    return {
-      preferredStrategy: 'INPUT',
-      preferredValue: input,
-      candidates: c
-    };
-  }
-
-  function currentDialogContext(el) {
-    const dialog = el?.closest?.(
-      '[role="dialog"],[aria-modal="true"],mat-dialog-container,.mat-mdc-dialog-container,.p-dialog'
-    );
-
-    if (!dialog) return null;
-
-    return {
-      type: 'DIALOG',
-      name: clean(
-        dialog.getAttribute('aria-label') ||
-        labelledBy(dialog) ||
-        dialog.querySelector?.('h1,h2,h3,[role="heading"]')?.textContent
-      ) || 'dialog'
-    };
-  }
-
-  function inputType(el) {
-    const tag = (el?.tagName || '').toLowerCase();
-    const role = clean(el?.getAttribute?.('role'));
-    const type = clean(el?.getAttribute?.('type'))?.toLowerCase();
-
-    if (type === 'file') return 'FILE';
-    if (type === 'checkbox' || role === 'checkbox') return 'CHECKBOX';
-    if (type === 'radio' || role === 'radio') return 'RADIO';
-    if (role === 'switch') return 'TOGGLE';
-    if (tag === 'select') return 'SELECT';
-    if (role === 'combobox' || role === 'searchbox') return 'AUTOCOMPLETE';
-    if (type === 'date' || type === 'datetime-local' || type === 'month' || type === 'time') return 'DATE';
-    if (tag === 'textarea') return 'TEXTAREA';
-    if (type === 'password') return 'PASSWORD';
-    if (type === 'email') return 'EMAIL';
-    if (type === 'number' || role === 'spinbutton') return 'NUMBER';
-    if (type === 'tel') return 'TEL';
-    if (type === 'url') return 'URL';
-    if (type === 'search') return 'SEARCH';
-    if (tag === 'input' || role === 'textbox') return 'TEXT';
-    if (role === 'slider') return 'SLIDER';
-    if (tag === 'button' || role === 'button') return 'BUTTON';
-    if (tag === 'a' || role === 'link') return 'LINK';
-    if (role === 'option') return 'OPTION';
-    return 'CUSTOM';
-  }
-
-  function getValue(el) {
-    if (!el) return null;
-
-    if ('value' in el && el.value != null) {
-      return clean(el.value);
-    }
-
-    const ariaValue = clean(el.getAttribute?.('aria-valuetext') || el.getAttribute?.('aria-valuenow'));
-    if (ariaValue) return ariaValue;
-
-    return null;
-  }
-
-  function isChecked(el) {
-    if (!el) return null;
-    if ('checked' in el) return !!el.checked;
-
-    const aria = clean(el.getAttribute?.('aria-checked'));
-    if (aria === 'true') return true;
-    if (aria === 'false') return false;
-
-    return null;
-  }
-
-  function emit(event) {
-    const full = {
-      timestamp: Date.now(),
-      stage: currentStage,
-      url: location.href,
-      ...event
-    };
-
-    window.__angularRecorderEvents.push(full);
-    console.log(PREFIX + JSON.stringify(full));
-  }
-
-  function baseEvent(el, actionType, typeOverride) {
-    return {
-      actionType,
-      inputType: typeOverride || inputType(el),
-      input: semanticInputName(el),
-      identifyBy: identifyBy(el),
-      context: currentDialogContext(el)
-    };
-  }
-
-  function emitEditable(el, actionType, rawValue) {
-    const event = baseEvent(el, actionType);
-
-    event.value = {
-      raw: clean(rawValue)
-    };
-
-    emit(event);
-  }
-
-  function scheduleEditable(el, actionType) {
-    const old = timers.get(el);
-    if (old) clearTimeout(old);
-
-    pending.set(el, {
-      actionType,
-      value: getValue(el)
-    });
-
-    const timer = setTimeout(() => {
-      const p = pending.get(el);
-      if (!p) return;
-      emitEditable(el, p.actionType, getValue(el));
-      pending.delete(el);
-      timers.delete(el);
-    }, 450);
-
-    timers.set(el, timer);
-  }
-
-  function flushEditable(el) {
-    if (!pending.has(el)) return;
-
-    const old = timers.get(el);
-    if (old) clearTimeout(old);
-
-    const p = pending.get(el);
-    emitEditable(el, p.actionType, getValue(el));
-
-    pending.delete(el);
-    timers.delete(el);
-  }
-
-  function editableControlFromVisualSurface(el) {
-    if (!el) return null;
-
-    if (el.matches?.('input,textarea,select,[contenteditable="true"],[role="textbox"],[role="combobox"],[role="searchbox"]')) {
-      return el;
-    }
-
-    const label = el.closest?.('label');
-    if (label) {
-      const forId = clean(label.getAttribute('for'));
-      if (forId) {
-        try {
-          const control = document.getElementById(forId);
-          if (control) return control;
-        } catch (_) {}
-      }
-
-      const nested = label.querySelector?.(
-        'input,textarea,select,[contenteditable="true"],[role="textbox"],[role="combobox"],[role="searchbox"]'
-      );
-      if (nested) return nested;
-    }
-
-    const wrapper = el.closest?.(
-      '.mat-mdc-form-field,.mat-form-field,.p-field,.p-float-label,.form-group,.form-field,.field,.input-group,[class*="form-field"]'
-    );
-
-    if (wrapper) {
-      const nested = wrapper.querySelector?.(
-        'input,textarea,select,[contenteditable="true"],[role="textbox"],[role="combobox"],[role="searchbox"]'
-      );
-      if (nested) return nested;
-    }
-
-    return null;
-  }
-
-  function isSearchLike(el) {
-    const role = clean(el?.getAttribute?.('role'));
-    const type = clean(el?.getAttribute?.('type'))?.toLowerCase();
-    const ariaAuto = clean(el?.getAttribute?.('aria-autocomplete'));
-
-    return role === 'combobox' ||
-           role === 'searchbox' ||
-           type === 'search' ||
-           !!ariaAuto;
-  }
-
-  function isDateLike(el) {
-    const type = clean(el?.getAttribute?.('type'))?.toLowerCase();
-    return ['date','datetime-local','month','time','week'].includes(type);
-  }
-
-  document.addEventListener('input', event => {
-    const el = closestMeaningful(eventElement(event));
-    if (!el) return;
-
-    const type = inputType(el);
-
-    if (['CHECKBOX','RADIO','TOGGLE','FILE','SELECT'].includes(type)) return;
-
-    let actionType = 'INPUT';
-    if (isSearchLike(el)) actionType = 'SEARCH';
-    if (isDateLike(el)) actionType = 'DATE_INPUT';
-
-    scheduleEditable(el, actionType);
-  }, true);
-
-  document.addEventListener('change', event => {
-    const el = closestMeaningful(eventElement(event));
-    if (!el) return;
-
-    flushEditable(el);
-
-    const type = inputType(el);
-
-    if (type === 'FILE') {
-      const files = el.files ? Array.from(el.files) : [];
-      emit({
-        ...baseEvent(el, 'FILE_UPLOAD', 'FILE'),
-        value: {
-          fileName: files.length ? files.map(f => f.name).join(', ') : null
-        }
-      });
-      return;
-    }
-
-    if (type === 'CHECKBOX' || type === 'TOGGLE') {
-      emit({
-        ...baseEvent(el, isChecked(el) ? 'CHECK' : 'UNCHECK', type),
-        value: {
-          raw: clean(el.value),
-          checked: isChecked(el)
-        }
-      });
-      return;
-    }
-
-    if (type === 'RADIO') {
-      if (isChecked(el) === false) return;
-      emit({
-        ...baseEvent(el, 'RADIO', 'RADIO'),
-        value: {
-          raw: clean(el.value),
-          selectedValue: clean(el.value),
-          selectedText: semanticInputName(el),
-          checked: true
-        }
-      });
-      return;
-    }
-
-    if ((el.tagName || '').toLowerCase() === 'select') {
-      const option = el.selectedOptions?.[0];
-      emit({
-        ...baseEvent(el, 'SELECT', 'SELECT'),
-        value: {
-          raw: clean(el.value),
-          selectedValue: clean(el.value),
-          selectedText: clean(option?.textContent)
-        }
-      });
-      return;
-    }
-
-    let actionType = 'INPUT';
-    if (isSearchLike(el)) actionType = 'SEARCH';
-    if (isDateLike(el)) actionType = 'DATE_INPUT';
-    emitEditable(el, actionType, getValue(el));
-  }, true);
-
-  document.addEventListener('blur', event => {
-    const el = closestMeaningful(eventElement(event));
-    if (el) flushEditable(el);
-  }, true);
-
-  document.addEventListener('focusout', event => {
-    const el = closestMeaningful(eventElement(event));
-    if (el) flushEditable(el);
-  }, true);
-
-  document.addEventListener('click', event => {
-    let el = closestMeaningful(eventElement(event));
-    if (!el) return;
-
-    // Clicking placeholder/label/form-field chrome is only focus behavior.
-    // Resolve it to the actual editable control and do not record a separate CLICK.
-    const editable = editableControlFromVisualSurface(el);
-    if (editable) {
-      const editableType = inputType(editable);
-      if (['TEXT','PASSWORD','EMAIL','NUMBER','TEL','URL','SEARCH','TEXTAREA','AUTOCOMPLETE','DATE'].includes(editableType)) {
+    if (window.__angularRecorderInstalled) {
         return;
-      }
-      el = editable;
     }
 
-    const type = inputType(el);
-    const role = clean(el.getAttribute?.('role'));
+    window.__angularRecorderInstalled = true;
 
-    if (type === 'CHECKBOX' || type === 'RADIO' || type === 'TOGGLE') {
-      // change handler records the final state.
-      return;
-    }
+    window.__angularRecorderEvents = [];
 
-    if (type === 'OPTION' || role === 'option') {
-      const text = shortText(el) || semanticInputName(el);
-      emit({
-        ...baseEvent(el, 'SELECT', 'OPTION'),
-        value: {
-          raw: text,
-          selectedValue: clean(el.getAttribute?.('value')) || text,
-          selectedText: text
-        },
-        waitInfo: {
-          type: 'OPTION_VISIBLE',
-          target: text,
-          role: 'option'
+    const PREFIX =
+        '__ANGULAR_RECORDER_EVENT__';
+
+    const timers =
+        new WeakMap();
+
+    const pending =
+        new WeakMap();
+
+    let currentStage = 1;
+
+    let lastUrl =
+        location.href;
+
+    let lastMutationAt =
+        Date.now();
+
+
+
+    /* =========================================================
+       BASIC HELPERS
+       ========================================================= */
+
+    function clean(value) {
+
+        if (value == null) {
+            return null;
         }
-      });
-      return;
+
+        const result =
+            String(value)
+                .replace(/\\s+/g, ' ')
+                .trim();
+
+        return result || null;
     }
 
-    const tag = (el.tagName || '').toLowerCase();
-    const rawType = clean(el.getAttribute?.('type'))?.toLowerCase();
 
-    if (tag === 'input' &&
-        !['button','submit','reset','file'].includes(rawType || '') &&
-        !['checkbox','radio'].includes(rawType || '')) {
-      return;
+
+    function shortText(element) {
+
+        if (!element) {
+            return null;
+        }
+
+        const text =
+            clean(
+                element.innerText ||
+                element.textContent
+            );
+
+        if (!text ||
+            text.length > 180) {
+
+            return null;
+        }
+
+        return text;
     }
 
-    if (tag === 'textarea' || tag === 'select' ||
-        role === 'textbox' || role === 'combobox' || role === 'searchbox') {
-      return;
+
+
+    function eventElement(event) {
+
+        const path =
+            event &&
+            event.composedPath
+                ? event.composedPath()
+                : [];
+
+        for (const item of path) {
+
+            if (item &&
+                item.nodeType ===
+                Node.ELEMENT_NODE) {
+
+                return item;
+            }
+        }
+
+        return event
+            ? event.target
+            : null;
     }
 
-    const inputName = semanticInputName(el);
-    const popupTrigger = el.getAttribute?.('aria-haspopup');
-    const dialogTarget = el.getAttribute?.('aria-controls');
 
-    emit({
-      ...baseEvent(
-        el,
-        popupTrigger || dialogTarget ? 'OPEN_POPUP' : 'CLICK'
-      ),
-      value: {
-        raw: shortText(el) || inputName
-      }
-    });
-  }, true);
 
-  document.addEventListener('keydown', event => {
-    if (!['Enter', 'Tab', 'Escape'].includes(event.key)) return;
+    function eventPath(event) {
 
-    const el = closestMeaningful(eventElement(event));
-    if (!el) return;
+        if (event &&
+            event.composedPath) {
 
-    emit({
-      ...baseEvent(el, 'KEY'),
-      value: {
-        raw: event.key
-      }
-    });
-  }, true);
+            return event
+                .composedPath()
+                .filter(
+                    x =>
+                        x &&
+                        x.nodeType ===
+                        Node.ELEMENT_NODE
+                );
+        }
 
-  // Capture dynamically rendered Angular/CDK overlays and custom option containers.
-  const observer = new MutationObserver(() => {
-    lastMutationAt = Date.now();
-  });
-
-  window.addEventListener('beforeunload', markBusy, true);
-  window.addEventListener('load', () => {
-    lastMutationAt = Date.now();
-    setTimeout(() => { pageBusy = false; }, 300);
-  }, true);
-
-  document.addEventListener('click', event => {
-    const el = closestMeaningful(eventElement(event));
-    if (!el) return;
-
-    const tag = (el.tagName || '').toLowerCase();
-    const role = clean(el.getAttribute?.('role'));
-    const type = clean(el.getAttribute?.('type'))?.toLowerCase();
-
-    if (tag === 'a' ||
-        type === 'submit' ||
-        role === 'link' ||
-        el.getAttribute?.('routerlink') ||
-        el.getAttribute?.('ng-reflect-router-link')) {
-      markPotentialStageChange();
+        return [];
     }
-  }, true);
 
-  const originalPushState = history.pushState.bind(history);
-  history.pushState = function(...args) {
-    const result = originalPushState(...args);
-    markPotentialStageChange();
-    return result;
-  };
 
-  const originalReplaceState = history.replaceState.bind(history);
-  history.replaceState = function(...args) {
-    const result = originalReplaceState(...args);
-    markPotentialStageChange();
-    return result;
-  };
 
-  window.addEventListener('popstate', markPotentialStageChange, true);
+    function ancestors(element) {
 
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-  });
+        const result = [];
+
+        let current =
+            element;
+
+        while (current &&
+               current !==
+               document.documentElement) {
+
+            result.push(current);
+
+            current =
+                current.parentElement;
+        }
+
+        return result;
+    }
+
+
+
+    /* =========================================================
+       FIND ACTUAL CONTROL
+       ========================================================= */
+
+    function isNativeOrSemanticControl(element) {
+
+        if (!element ||
+            !element.matches) {
+
+            return false;
+        }
+
+        return element.matches(`
+            input,
+            textarea,
+            select,
+            button,
+            a,
+            [contenteditable="true"],
+            [role="textbox"],
+            [role="searchbox"],
+            [role="combobox"],
+            [role="checkbox"],
+            [role="radio"],
+            [role="switch"],
+            [role="button"],
+            [role="link"],
+            [role="option"],
+            [role="menuitem"],
+            [role="slider"],
+            [role="spinbutton"]
+        `);
+    }
+
+
+
+    function closestMeaningful(
+        event) {
+
+        const path =
+            eventPath(event);
+
+        /*
+         * First prefer actual native/semantic input.
+         */
+        for (const node of path) {
+
+            if (isNativeOrSemanticControl(
+                node)) {
+
+                return node;
+            }
+        }
+
+        /*
+         * Then custom Angular component.
+         */
+        for (const node of path) {
+
+            if (isLogicalAngularHost(
+                node)) {
+
+                return node;
+            }
+        }
+
+        return eventElement(event);
+    }
+
+
+
+    /* =========================================================
+       GENERIC ANGULAR CUSTOM CONTROL DETECTION
+       ========================================================= */
+
+    function isLogicalAngularHost(
+        element) {
+
+        if (!element ||
+            !element.getAttribute) {
+
+            return false;
+        }
+
+        const tag =
+            (
+                element.tagName ||
+                ''
+            ).toLowerCase();
+
+        /*
+         * Generic Angular/custom component.
+         *
+         * Example:
+         *
+         * mt-dropdown
+         * dcrm-dcrm-datepicker
+         * abc-customer-selector
+         *
+         * No component name is hardcoded.
+         */
+        if (tag.includes('-')) {
+            return true;
+        }
+
+        if (
+            element.hasAttribute(
+                'formControlName'
+            ) ||
+            element.hasAttribute(
+                'formcontrolname'
+            ) ||
+            element.hasAttribute(
+                'controlName'
+            ) ||
+            element.hasAttribute(
+                'controlname'
+            ) ||
+            element.hasAttribute(
+                'ngModel'
+            ) ||
+            element.hasAttribute(
+                'ngmodel'
+            )
+        ) {
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+    function findLogicalAngularHost(
+        nativeElement,
+        event) {
+
+        const nodes = [
+            ...eventPath(event),
+            ...ancestors(nativeElement)
+        ];
+
+        for (const node of nodes) {
+
+            if (node ===
+                nativeElement) {
+
+                continue;
+            }
+
+            if (isLogicalAngularHost(
+                node)) {
+
+                return node;
+            }
+        }
+
+        return null;
+    }
+
+
+
+    /* =========================================================
+       CONTROL NAME
+       ========================================================= */
+
+    function controlName(
+        nativeElement,
+        customHost) {
+
+        const elements = [
+            nativeElement,
+            customHost
+        ];
+
+        for (const element of elements) {
+
+            if (!element ||
+                !element.getAttribute) {
+
+                continue;
+            }
+
+            const value =
+                clean(
+                    element.getAttribute(
+                        'formControlName'
+                    ) ||
+                    element.getAttribute(
+                        'formcontrolname'
+                    ) ||
+                    element.getAttribute(
+                        'controlName'
+                    ) ||
+                    element.getAttribute(
+                        'controlname'
+                    ) ||
+                    element.getAttribute(
+                        'name'
+                    ) ||
+                    element.getAttribute(
+                        'ng-reflect-name'
+                    )
+                );
+
+            if (value) {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+
+
+    /* =========================================================
+       LABEL DETECTION
+       ========================================================= */
+
+    function labelledBy(
+        element) {
+
+        if (!element ||
+            !element.getAttribute) {
+
+            return null;
+        }
+
+        const ids =
+            clean(
+                element.getAttribute(
+                    'aria-labelledby'
+                )
+            );
+
+        if (!ids) {
+            return null;
+        }
+
+        return clean(
+            ids
+                .split(/\\s+/)
+                .map(
+                    id =>
+                        document.getElementById(
+                            id
+                        )
+                )
+                .filter(Boolean)
+                .map(
+                    element =>
+                        element.innerText ||
+                        element.textContent
+                )
+                .join(' ')
+        );
+    }
+
+
+
+    function cleanLabelText(
+        label) {
+
+        if (!label) {
+            return null;
+        }
+
+        const clone =
+            label.cloneNode(true);
+
+        /*
+         * Remove tooltip/help/error decorations.
+         */
+        clone
+            .querySelectorAll(`
+                [role="tooltip"],
+                [class*="tooltip"],
+                [class*="error"],
+                mat-icon,
+                svg,
+                small
+            `)
+            .forEach(
+                element =>
+                    element.remove()
+            );
+
+        return clean(
+            clone.textContent
+        );
+    }
+
+
+
+    function associatedLabel(
+        element) {
+
+        if (!element) {
+            return null;
+        }
+
+        if (element.labels &&
+            element.labels.length) {
+
+            const result =
+                clean(
+                    Array.from(
+                        element.labels
+                    )
+                    .map(
+                        cleanLabelText
+                    )
+                    .filter(Boolean)
+                    .join(' ')
+                );
+
+            if (result) {
+                return result;
+            }
+        }
+
+        const id =
+            clean(
+                element.id
+            );
+
+        if (id) {
+
+            try {
+
+                const label =
+                    document.querySelector(
+                        `label[for="${CSS.escape(id)}"]`
+                    );
+
+                if (label) {
+
+                    return cleanLabelText(
+                        label
+                    );
+                }
+
+            } catch (_) {
+            }
+        }
+
+        const wrapping =
+            element.closest
+                ? element.closest(
+                    'label'
+                )
+                : null;
+
+        if (wrapping) {
+
+            const result =
+                cleanLabelText(
+                    wrapping
+                );
+
+            if (result) {
+                return result;
+            }
+        }
+
+        const ariaLabelled =
+            labelledBy(element);
+
+        if (ariaLabelled) {
+            return ariaLabelled;
+        }
+
+        return null;
+    }
+
+
+
+    function findFormContainer(
+        nativeElement,
+        customHost) {
+
+        const source =
+            customHost ||
+            nativeElement;
+
+        if (!source ||
+            !source.closest) {
+
+            return null;
+        }
+
+        return source.closest(`
+            .form-group,
+            .lmn-form-group,
+            .form-field,
+            .field,
+            .mat-mdc-form-field,
+            .mat-form-field,
+            .p-field,
+            .p-float-label,
+            [class*="form-group"],
+            [class*="form-field"]
+        `);
+    }
+
+
+
+    function labelFromContainer(
+        nativeElement,
+        customHost) {
+
+        const container =
+            findFormContainer(
+                nativeElement,
+                customHost
+            );
+
+        if (!container) {
+            return null;
+        }
+
+        /*
+         * Prefer direct form label.
+         */
+        const labels =
+            Array.from(
+                container.querySelectorAll(
+                    'label'
+                )
+            );
+
+        for (const label of labels) {
+
+            const text =
+                cleanLabelText(
+                    label
+                );
+
+            if (text) {
+                return text;
+            }
+        }
+
+        return null;
+    }
+
+
+
+    function visibleLabel(
+        nativeElement,
+        customHost) {
+
+        return clean(
+            associatedLabel(
+                nativeElement
+            ) ||
+
+            nativeElement
+                ?.getAttribute
+                ?.('aria-label') ||
+
+            labelledBy(
+                nativeElement
+            ) ||
+
+            customHost
+                ?.getAttribute
+                ?.('aria-label') ||
+
+            labelledBy(
+                customHost
+            ) ||
+
+            labelFromContainer(
+                nativeElement,
+                customHost
+            )
+        );
+    }
+
+
+
+    /* =========================================================
+       CONTROL RESOLUTION
+       ========================================================= */
+
+    function resolveControl(
+        event) {
+
+        const nativeElement =
+            closestMeaningful(
+                event
+            );
+
+        const customHost =
+            findLogicalAngularHost(
+                nativeElement,
+                event
+            );
+
+        const label =
+            visibleLabel(
+                nativeElement,
+                customHost
+            );
+
+        const name =
+            controlName(
+                nativeElement,
+                customHost
+            );
+
+        return {
+            nativeElement,
+            customHost,
+            label,
+            controlName: name
+        };
+    }
+
+
+
+    /* =========================================================
+       INPUT TYPE DETECTION
+       ========================================================= */
+
+    function detectInputType(
+        control) {
+
+        const element =
+            control.nativeElement;
+
+        const host =
+            control.customHost;
+
+        const tag =
+            (
+                element
+                    ?.tagName ||
+                ''
+            ).toLowerCase();
+
+        const role =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('role') ||
+
+                host
+                    ?.getAttribute
+                    ?.('role')
+            );
+
+        const type =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('type')
+            )?.toLowerCase();
+
+        if (type === 'file') {
+            return 'FILE';
+        }
+
+        if (
+            type === 'checkbox' ||
+            role === 'checkbox'
+        ) {
+
+            return 'CHECKBOX';
+        }
+
+        if (
+            type === 'radio' ||
+            role === 'radio'
+        ) {
+
+            return 'RADIO';
+        }
+
+        if (role === 'switch') {
+            return 'TOGGLE';
+        }
+
+        if (
+            type === 'date' ||
+            type === 'datetime-local' ||
+            type === 'month' ||
+            type === 'week' ||
+            type === 'time'
+        ) {
+
+            return 'DATE';
+        }
+
+        if (
+            type === 'range' ||
+            role === 'slider'
+        ) {
+
+            return 'SLIDER';
+        }
+
+        if (tag === 'textarea') {
+            return 'TEXTAREA';
+        }
+
+        if (tag === 'select') {
+            return 'SELECT';
+        }
+
+        if (
+            role === 'combobox' ||
+            role === 'searchbox' ||
+            element
+                ?.getAttribute
+                ?.('aria-autocomplete')
+        ) {
+
+            return 'AUTOCOMPLETE';
+        }
+
+        if (
+            element
+                ?.isContentEditable
+        ) {
+
+            return 'RICH_TEXT';
+        }
+
+        if (type === 'password') {
+            return 'PASSWORD';
+        }
+
+        if (type === 'email') {
+            return 'EMAIL';
+        }
+
+        if (type === 'number') {
+            return 'NUMBER';
+        }
+
+        if (type === 'tel') {
+            return 'TEL';
+        }
+
+        if (type === 'url') {
+            return 'URL';
+        }
+
+        if (type === 'search') {
+            return 'SEARCH';
+        }
+
+        if (
+            tag === 'input' ||
+            role === 'textbox'
+        ) {
+
+            return 'TEXT';
+        }
+
+        if (
+            tag === 'button' ||
+            role === 'button'
+        ) {
+
+            return 'BUTTON';
+        }
+
+        if (
+            tag === 'a' ||
+            role === 'link'
+        ) {
+
+            return 'LINK';
+        }
+
+        if (role === 'option') {
+            return 'OPTION';
+        }
+
+        /*
+         * Generic custom component inference.
+         */
+        if (host) {
+
+            const hasFile =
+                host.querySelector(
+                    'input[type="file"]'
+                );
+
+            if (hasFile) {
+                return 'FILE';
+            }
+
+            const hasCheckbox =
+                host.querySelector(
+                    'input[type="checkbox"],[role="checkbox"]'
+                );
+
+            if (hasCheckbox) {
+                return 'CHECKBOX';
+            }
+
+            const hasRadio =
+                host.querySelector(
+                    'input[type="radio"],[role="radio"]'
+                );
+
+            if (hasRadio) {
+                return 'RADIO';
+            }
+
+            const hasSearch =
+                host.querySelector(
+                    'input[type="search"],[role="searchbox"],[role="combobox"],input[aria-autocomplete]'
+                );
+
+            if (hasSearch) {
+                return 'AUTOCOMPLETE';
+            }
+
+            const hasText =
+                host.querySelector(
+                    'input,textarea,[role="textbox"]'
+                );
+
+            if (hasText) {
+                return 'TEXT';
+            }
+        }
+
+        return 'CUSTOM';
+    }
+
+
+
+    /* =========================================================
+       IDENTIFICATION
+       ========================================================= */
+
+    function candidates(
+        control) {
+
+        const result = {};
+
+        const element =
+            control.nativeElement;
+
+        const host =
+            control.customHost;
+
+        if (control.label) {
+            result.LABEL =
+                control.label;
+        }
+
+        const ariaLabel =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('aria-label') ||
+
+                host
+                    ?.getAttribute
+                    ?.('aria-label')
+            );
+
+        if (ariaLabel) {
+
+            result.ARIA_LABEL =
+                ariaLabel;
+        }
+
+        const accessible =
+            clean(
+                associatedLabel(
+                    element
+                ) ||
+
+                ariaLabel ||
+
+                labelledBy(
+                    element
+                )
+            );
+
+        if (accessible) {
+
+            result.ACCESSIBLE_NAME =
+                accessible;
+        }
+
+        if (control.controlName) {
+
+            /*
+             * Determine whether it came from formControlName
+             * or custom controlName.
+             */
+            const formControl =
+                clean(
+                    element
+                        ?.getAttribute
+                        ?.('formControlName') ||
+
+                    element
+                        ?.getAttribute
+                        ?.('formcontrolname') ||
+
+                    host
+                        ?.getAttribute
+                        ?.('formControlName') ||
+
+                    host
+                        ?.getAttribute
+                        ?.('formcontrolname')
+                );
+
+            if (formControl) {
+
+                result.FORM_CONTROL_NAME =
+                    formControl;
+
+            } else {
+
+                result.CONTROL_NAME =
+                    control.controlName;
+            }
+        }
+
+        const name =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('name') ||
+
+                host
+                    ?.getAttribute
+                    ?.('name')
+            );
+
+        if (name) {
+
+            result.NAME =
+                name;
+        }
+
+        const id =
+            clean(
+                element?.id ||
+                host?.id
+            );
+
+        if (id) {
+
+            result.ID =
+                id;
+        }
+
+        const role =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('role') ||
+
+                host
+                    ?.getAttribute
+                    ?.('role')
+            );
+
+        if (role) {
+
+            result.ROLE =
+                role;
+        }
+
+        const placeholder =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('placeholder')
+            );
+
+        /*
+         * Placeholder is metadata only.
+         * It never creates a second event.
+         */
+        if (placeholder) {
+
+            result.PLACEHOLDER =
+                placeholder;
+        }
+
+        const testId =
+            clean(
+                element
+                    ?.getAttribute
+                    ?.('data-testid') ||
+
+                element
+                    ?.getAttribute
+                    ?.('data-test') ||
+
+                host
+                    ?.getAttribute
+                    ?.('data-testid') ||
+
+                host
+                    ?.getAttribute
+                    ?.('data-test')
+            );
+
+        if (testId) {
+
+            result.DATA_TESTID =
+                testId;
+        }
+
+        if (host) {
+
+            const component =
+                clean(
+                    host.tagName
+                )?.toLowerCase();
+
+            if (component) {
+
+                result.COMPONENT =
+                    component;
+            }
+        }
+
+        return result;
+    }
+
+
+
+    function semanticInputName(
+        control) {
+
+        const c =
+            candidates(
+                control
+            );
+
+        /*
+         * Label is highest priority.
+         */
+        return clean(
+            c.LABEL ||
+            c.ARIA_LABEL ||
+            c.ACCESSIBLE_NAME ||
+            c.FORM_CONTROL_NAME ||
+            c.CONTROL_NAME ||
+            c.NAME ||
+            c.ID ||
+            c.PLACEHOLDER ||
+            c.COMPONENT ||
+            'unnamed'
+        );
+    }
+
+
+
+    function identifyBy(
+        control) {
+
+        const c =
+            candidates(control);
+
+        const priority = [
+            'LABEL',
+            'ARIA_LABEL',
+            'ACCESSIBLE_NAME',
+            'FORM_CONTROL_NAME',
+            'CONTROL_NAME',
+            'NAME',
+            'ID',
+            'ROLE',
+            'DATA_TESTID',
+            'PLACEHOLDER',
+            'COMPONENT'
+        ];
+
+        for (const strategy of priority) {
+
+            if (c[strategy]) {
+
+                return {
+                    preferredStrategy:
+                        strategy,
+
+                    preferredValue:
+                        c[strategy],
+
+                    candidates:
+                        c
+                };
+            }
+        }
+
+        return {
+            preferredStrategy:
+                'INPUT',
+
+            preferredValue:
+                semanticInputName(
+                    control
+                ),
+
+            candidates:
+                c
+        };
+    }
+
+
+
+    /* =========================================================
+       VALUE
+       ========================================================= */
+
+    function currentValue(
+        control) {
+
+        const element =
+            control.nativeElement;
+
+        if (!element) {
+            return null;
+        }
+
+        if (
+            element
+                .isContentEditable
+        ) {
+
+            return clean(
+                element.innerText
+            );
+        }
+
+        if (
+            'value' in element &&
+            element.value != null
+        ) {
+
+            return clean(
+                element.value
+            );
+        }
+
+        return clean(
+            element
+                .getAttribute
+                ?.('aria-valuetext') ||
+
+            element
+                .getAttribute
+                ?.('aria-valuenow')
+        );
+    }
+
+
+
+    function checkedState(
+        control) {
+
+        const element =
+            control.nativeElement;
+
+        if (!element) {
+            return null;
+        }
+
+        if ('checked' in element) {
+
+            return !!element.checked;
+        }
+
+        const aria =
+            clean(
+                element
+                    .getAttribute
+                    ?.('aria-checked')
+            );
+
+        if (aria === 'true') {
+            return true;
+        }
+
+        if (aria === 'false') {
+            return false;
+        }
+
+        return null;
+    }
+
+
+
+    /* =========================================================
+       DIALOG CONTEXT
+       ========================================================= */
+
+    function dialogContext(
+        control) {
+
+        const element =
+            control.nativeElement;
+
+        const dialog =
+            element
+                ?.closest
+                ?.(`
+                    [role="dialog"],
+                    [aria-modal="true"]
+                `);
+
+        if (!dialog) {
+            return null;
+        }
+
+        return {
+            type:
+                'DIALOG',
+
+            name:
+                clean(
+                    dialog
+                        .getAttribute(
+                            'aria-label'
+                        ) ||
+
+                    labelledBy(
+                        dialog
+                    ) ||
+
+                    dialog
+                        .querySelector(
+                            'h1,h2,h3,[role="heading"]'
+                        )
+                        ?.textContent
+                ) ||
+                'dialog'
+        };
+    }
+
+
+
+    /* =========================================================
+       EVENT EMIT
+       ========================================================= */
+
+    function emit(
+        event) {
+
+        const full = {
+
+            timestamp:
+                Date.now(),
+
+            stage:
+                currentStage,
+
+            url:
+                location.href,
+
+            ...event
+        };
+
+        window
+            .__angularRecorderEvents
+            .push(full);
+
+        console.log(
+            PREFIX +
+            JSON.stringify(full)
+        );
+    }
+
+
+
+    function baseEvent(
+        control,
+        actionType,
+        typeOverride) {
+
+        return {
+
+            actionType,
+
+            inputType:
+                typeOverride ||
+                detectInputType(
+                    control
+                ),
+
+            input:
+                semanticInputName(
+                    control
+                ),
+
+            identifyBy:
+                identifyBy(
+                    control
+                ),
+
+            context:
+                dialogContext(
+                    control
+                )
+        };
+    }
+
+
+
+    /* =========================================================
+       INPUT NORMALIZATION
+       ========================================================= */
+
+    function editableAction(
+        control) {
+
+        const type =
+            detectInputType(
+                control
+            );
+
+        if (
+            type ===
+            'AUTOCOMPLETE' ||
+            type ===
+            'SEARCH'
+        ) {
+
+            return 'SEARCH';
+        }
+
+        if (
+            type ===
+            'DATE'
+        ) {
+
+            return 'DATE_INPUT';
+        }
+
+        return 'INPUT';
+    }
+
+
+
+    function scheduleEditable(
+        control) {
+
+        const element =
+            control.nativeElement;
+
+        if (!element) {
+            return;
+        }
+
+        const oldTimer =
+            timers.get(
+                element
+            );
+
+        if (oldTimer) {
+
+            clearTimeout(
+                oldTimer
+            );
+        }
+
+        pending.set(
+            element,
+            {
+                control,
+                actionType:
+                    editableAction(
+                        control
+                    )
+            }
+        );
+
+        /*
+         * Capture final typed value,
+         * not one event for every character.
+         */
+        const timer =
+            setTimeout(
+                () => {
+
+                    const item =
+                        pending.get(
+                            element
+                        );
+
+                    if (!item) {
+                        return;
+                    }
+
+                    emit({
+                        ...baseEvent(
+                            item.control,
+                            item.actionType
+                        ),
+
+                        value: {
+                            raw:
+                                currentValue(
+                                    item.control
+                                )
+                        }
+                    });
+
+                    pending.delete(
+                        element
+                    );
+
+                    timers.delete(
+                        element
+                    );
+
+                },
+                500
+            );
+
+        timers.set(
+            element,
+            timer
+        );
+    }
+
+
+
+    function flushEditable(
+        control) {
+
+        const element =
+            control.nativeElement;
+
+        if (!element ||
+            !pending.has(
+                element
+            )) {
+
+            return;
+        }
+
+        const oldTimer =
+            timers.get(
+                element
+            );
+
+        if (oldTimer) {
+
+            clearTimeout(
+                oldTimer
+            );
+        }
+
+        const item =
+            pending.get(
+                element
+            );
+
+        emit({
+            ...baseEvent(
+                item.control,
+                item.actionType
+            ),
+
+            value: {
+                raw:
+                    currentValue(
+                        item.control
+                    )
+            }
+        });
+
+        pending.delete(
+            element
+        );
+
+        timers.delete(
+            element
+        );
+    }
+
+
+
+    /* =========================================================
+       INPUT EVENT
+       ========================================================= */
+
+    document.addEventListener(
+        'input',
+        event => {
+
+            const control =
+                resolveControl(
+                    event
+                );
+
+            const type =
+                detectInputType(
+                    control
+                );
+
+            if (
+                type ===
+                'CHECKBOX' ||
+
+                type ===
+                'RADIO' ||
+
+                type ===
+                'TOGGLE' ||
+
+                type ===
+                'FILE' ||
+
+                type ===
+                'SELECT'
+            ) {
+
+                return;
+            }
+
+            scheduleEditable(
+                control
+            );
+        },
+        true
+    );
+
+
+
+    /* =========================================================
+       CHANGE EVENT
+       ========================================================= */
+
+    document.addEventListener(
+        'change',
+        event => {
+
+            const control =
+                resolveControl(
+                    event
+                );
+
+            flushEditable(
+                control
+            );
+
+            const element =
+                control.nativeElement;
+
+            const type =
+                detectInputType(
+                    control
+                );
+
+
+
+            if (type === 'FILE') {
+
+                const files =
+                    element.files
+                        ? Array.from(
+                            element.files
+                        )
+                        : [];
+
+                emit({
+                    ...baseEvent(
+                        control,
+                        'FILE_UPLOAD',
+                        'FILE'
+                    ),
+
+                    value: {
+                        fileName:
+                            files.length
+                                ? files
+                                    .map(
+                                        f =>
+                                            f.name
+                                    )
+                                    .join(', ')
+                                : null
+                    }
+                });
+
+                return;
+            }
+
+
+
+            if (
+                type ===
+                'CHECKBOX' ||
+                type ===
+                'TOGGLE'
+            ) {
+
+                const checked =
+                    checkedState(
+                        control
+                    );
+
+                emit({
+                    ...baseEvent(
+                        control,
+                        checked
+                            ? 'CHECK'
+                            : 'UNCHECK',
+                        type
+                    ),
+
+                    value: {
+                        raw:
+                            currentValue(
+                                control
+                            ),
+
+                        checked
+                    }
+                });
+
+                return;
+            }
+
+
+
+            if (type === 'RADIO') {
+
+                const checked =
+                    checkedState(
+                        control
+                    );
+
+                if (checked === false) {
+                    return;
+                }
+
+                emit({
+                    ...baseEvent(
+                        control,
+                        'RADIO',
+                        'RADIO'
+                    ),
+
+                    value: {
+                        raw:
+                            currentValue(
+                                control
+                            ),
+
+                        selectedValue:
+                            currentValue(
+                                control
+                            ),
+
+                        selectedText:
+                            semanticInputName(
+                                control
+                            ),
+
+                        checked:
+                            true
+                    }
+                });
+
+                return;
+            }
+
+
+
+            if (
+                element &&
+                element
+                    .tagName
+                    ?.toLowerCase() ===
+                'select'
+            ) {
+
+                const option =
+                    element
+                        .selectedOptions
+                        ?.[0];
+
+                emit({
+                    ...baseEvent(
+                        control,
+                        'SELECT',
+                        'SELECT'
+                    ),
+
+                    value: {
+                        raw:
+                            clean(
+                                element.value
+                            ),
+
+                        selectedValue:
+                            clean(
+                                element.value
+                            ),
+
+                        selectedText:
+                            clean(
+                                option
+                                    ?.textContent
+                            )
+                    }
+                });
+
+                return;
+            }
+
+
+
+            emit({
+                ...baseEvent(
+                    control,
+                    editableAction(
+                        control
+                    )
+                ),
+
+                value: {
+                    raw:
+                        currentValue(
+                            control
+                        )
+                }
+            });
+        },
+        true
+    );
+
+
+
+    /* =========================================================
+       BLUR
+       ========================================================= */
+
+    document.addEventListener(
+        'focusout',
+        event => {
+
+            const control =
+                resolveControl(
+                    event
+                );
+
+            flushEditable(
+                control
+            );
+        },
+        true
+    );
+
+
+
+    /* =========================================================
+       CLICK / OPTION / POPUP
+       ========================================================= */
+
+    document.addEventListener(
+        'click',
+        event => {
+
+            const control =
+                resolveControl(
+                    event
+                );
+
+            const element =
+                control.nativeElement;
+
+            if (!element) {
+                return;
+            }
+
+            const type =
+                detectInputType(
+                    control
+                );
+
+            const role =
+                clean(
+                    element
+                        .getAttribute
+                        ?.('role')
+                );
+
+
+
+            /*
+             * Input focus/placeholder click
+             * is NOT a separate event.
+             */
+            if (
+                type === 'TEXT' ||
+                type === 'PASSWORD' ||
+                type === 'EMAIL' ||
+                type === 'NUMBER' ||
+                type === 'TEL' ||
+                type === 'URL' ||
+                type === 'SEARCH' ||
+                type === 'TEXTAREA' ||
+                type === 'AUTOCOMPLETE'
+            ) {
+
+                return;
+            }
+
+
+
+            /*
+             * Change event will capture these.
+             */
+            if (
+                type === 'CHECKBOX' ||
+                type === 'RADIO' ||
+                type === 'TOGGLE'
+            ) {
+
+                return;
+            }
+
+
+
+            /*
+             * Generic overlay/list option.
+             */
+            if (
+                role === 'option' ||
+                type === 'OPTION'
+            ) {
+
+                const selectedText =
+                    shortText(
+                        element
+                    );
+
+                emit({
+                    ...baseEvent(
+                        control,
+                        'SELECT',
+                        'OPTION'
+                    ),
+
+                    value: {
+
+                        raw:
+                            selectedText,
+
+                        selectedValue:
+                            clean(
+                                element
+                                    .getAttribute
+                                    ?.('value')
+                            ) ||
+                            selectedText,
+
+                        selectedText:
+                            selectedText
+                    },
+
+                    wait: {
+                        type:
+                            'OPTION_VISIBLE',
+
+                        target:
+                            selectedText,
+
+                        role:
+                            'option'
+                    }
+                });
+
+                return;
+            }
+
+
+
+            const hasPopup =
+                clean(
+                    element
+                        .getAttribute
+                        ?.('aria-haspopup')
+                );
+
+            const controls =
+                clean(
+                    element
+                        .getAttribute
+                        ?.('aria-controls')
+                );
+
+
+
+            emit({
+                ...baseEvent(
+                    control,
+                    hasPopup ||
+                    controls
+                        ? 'OPEN_POPUP'
+                        : 'CLICK'
+                ),
+
+                value: {
+                    raw:
+                        shortText(
+                            element
+                        ) ||
+                        semanticInputName(
+                            control
+                        )
+                }
+            });
+        },
+        true
+    );
+
+
+
+    /* =========================================================
+       KEYBOARD
+       ========================================================= */
+
+    document.addEventListener(
+        'keydown',
+        event => {
+
+            if (
+                ![
+                    'Enter',
+                    'Tab',
+                    'Escape'
+                ]
+                .includes(
+                    event.key
+                )
+            ) {
+
+                return;
+            }
+
+            const control =
+                resolveControl(
+                    event
+                );
+
+            emit({
+                ...baseEvent(
+                    control,
+                    'KEY'
+                ),
+
+                value: {
+                    raw:
+                        event.key
+                }
+            });
+        },
+        true
+    );
+
+
+
+    /* =========================================================
+       ANGULAR SPA STAGE TRACKING
+       ========================================================= */
+
+    function checkStageChange() {
+
+        setTimeout(
+            () => {
+
+                if (
+                    location.href !==
+                    lastUrl
+                ) {
+
+                    lastUrl =
+                        location.href;
+
+                    currentStage++;
+                }
+
+            },
+            0
+        );
+    }
+
+
+
+    const originalPushState =
+        history.pushState
+            .bind(history);
+
+    history.pushState =
+        function(...args) {
+
+            const result =
+                originalPushState(
+                    ...args
+                );
+
+            checkStageChange();
+
+            return result;
+        };
+
+
+
+    const originalReplaceState =
+        history.replaceState
+            .bind(history);
+
+    history.replaceState =
+        function(...args) {
+
+            const result =
+                originalReplaceState(
+                    ...args
+                );
+
+            checkStageChange();
+
+            return result;
+        };
+
+
+
+    window.addEventListener(
+        'popstate',
+        checkStageChange,
+        true
+    );
+
+
+
+    /* =========================================================
+       DYNAMIC ANGULAR / OVERLAY DOM
+       ========================================================= */
+
+    const observer =
+        new MutationObserver(
+            () => {
+
+                lastMutationAt =
+                    Date.now();
+            }
+        );
+
+    observer.observe(
+        document.documentElement,
+        {
+            childList:
+                true,
+
+            subtree:
+                true
+        }
+    );
+
 })();
 """;
 }
